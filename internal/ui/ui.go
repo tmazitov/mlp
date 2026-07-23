@@ -22,12 +22,14 @@ func NewUI() *UI {
 
 	trainingMenuTab := tabs.NewTrainingMenuTab()
 	trainingProcessTab := tabs.NewTrainingProcessTab()
+	trainingDoneTab := tabs.NewTrainingDoneTab()
 	predictTab := tabs.NewPredictTab()
 
 	// allTabs is every tab MainWindow can display, including ones hidden
 	// from the sidebar. menuTabs is only the subset shown in the sidebar —
-	// trainingProcessTab is reachable solely by submitting the training form.
-	allTabs := []tabs.Tab{trainingMenuTab, trainingProcessTab, predictTab}
+	// trainingProcessTab and trainingDoneTab are reachable only by
+	// submitting the training form and letting training run to completion.
+	allTabs := []tabs.Tab{trainingMenuTab, trainingProcessTab, trainingDoneTab, predictTab}
 	menuTabs := []tabs.Tab{trainingMenuTab, predictTab}
 
 	var ui *UI = &UI{

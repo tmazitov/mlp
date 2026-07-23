@@ -15,11 +15,14 @@ import (
 // calling tab methods directly — tab state only ever changes inside the
 // Update loop, which keeps it race-free with rendering.
 func simulateTraining(program *tea.Program) {
-	const totalSteps = 1000
+	const totalSteps = 100
 
 	for i := range totalSteps {
 		time.Sleep(200 * time.Millisecond)
 		program.Send(tabs.AddLogMsg{Message: fmt.Sprintf("Log %d: something big happen..", i)})
 		program.Send(tabs.UpdateProgressStatusMsg{Value: float64(i) / totalSteps})
 	}
+
+	program.Send(tabs.UpdateProgressStatusMsg{Value: 1})
+	program.Send(tabs.SwitchTabMsg{TabName: tabs.TrainingDoneTabName})
 }
