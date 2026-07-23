@@ -87,10 +87,10 @@ func (f *TrainingForm) Update(message tea.KeyMsg) tea.Cmd {
 		}
 		if _, err := f.Value(); err != nil {
 			f.errorMsg = err.Error()
-		} else {
-			f.errorMsg = ""
+			return nil
 		}
-		return nil
+		f.errorMsg = ""
+		return SwitchTabCmd("training_process")
 	}
 
 	var cmd tea.Cmd

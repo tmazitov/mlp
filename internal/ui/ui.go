@@ -10,26 +10,33 @@ import (
 )
 
 type UI struct {
-	menuSideBar    *views.MenuSideBar
-	mainWindow     *views.MainWindow
-	selectedColumn int
-	width          int
-	height         int
+	menuSideBar        *views.MenuSideBar
+	mainWindow         *views.MainWindow
+	trainingProcessTab *tabs.TrainingProcessTab
+	selectedColumn     int
+	width              int
+	height             int
 }
 
 func NewUI() *UI {
 
-	var tabs = []tabs.Tab{
-		tabs.NewTrainingMenuTab(),
-		tabs.NewPredictTab(),
-	}
+	trainingMenuTab := tabs.NewTrainingMenuTab()
+	trainingProcessTab := tabs.NewTrainingProcessTab()
+	predictTab := tabs.NewPredictTab()
+
+	// allTabs is every tab MainWindow can display, including ones hidden
+	// from the sidebar. menuTabs is only the subset shown in the sidebar —
+	// trainingProcessTab is reachable solely by submitting the training form.
+	allTabs := []tabs.Tab{trainingMenuTab, trainingProcessTab, predictTab}
+	menuTabs := []tabs.Tab{trainingMenuTab, predictTab}
 
 	var ui *UI = &UI{
-		mainWindow:     views.NewMainWindow(tabs),
-		selectedColumn: 0,
+		mainWindow:         views.NewMainWindow(allTabs),
+		trainingProcessTab: trainingProcessTab,
+		selectedColumn:     0,
 	}
 
-	ui.menuSideBar = views.NewMenuSideBar(tabs, ui.ActivateTab)
+	ui.menuSideBar = views.NewMenuSideBar(menuTabs, ui.ActivateTab)
 
 	return ui
 }
@@ -66,6 +73,13 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		u.width = message.Width
 		u.height = message.Height
+	case tabs.SwitchTabMsg:
+		u.mainWindow.SetCurrentTab(message.TabName)
+		u.selectedColumn = 1
+	case tabs.AddLogMsg:
+		u.trainingProcessTab.AddLog(message.Message)
+	case tabs.UpdateProgressStatusMsg:
+		u.trainingProcessTab.UpdateProgressStatus(message.Value)
 	case tea.KeyMsg:
 		switch message.String() {
 

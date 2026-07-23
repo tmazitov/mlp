@@ -18,6 +18,8 @@ func NewApp() *App {
 }
 
 func (a App) Run() error {
+	go simulateTraining(a.teaProgram)
+
 	_, err := a.teaProgram.Run()
 	if err != nil {
 		return fmt.Errorf("app bubbletea error: %w", err)
