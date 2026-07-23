@@ -2,6 +2,7 @@ package ui
 
 import (
 	"mlp/internal/ui/styles"
+	"mlp/internal/ui/tabs"
 	"mlp/internal/ui/views"
 
 	tea "charm.land/bubbletea/v2"
@@ -9,35 +10,51 @@ import (
 )
 
 type UI struct {
-	columns        []Column
-	proportions    []float32
+	menuSideBar    *views.MenuSideBar
+	mainWindow     *views.MainWindow
 	selectedColumn int
 	width          int
 	height         int
 }
 
-type Column interface {
-	View() string
-	Update(message tea.KeyMsg) tea.Cmd
-}
-
 func NewUI() *UI {
-	return &UI{
-		columns: []Column{
-			views.NewMenuSideBar(tabs),
-			views.NewMainView(),
-		},
-		proportions: []float32{
-			0.25,
-			0.75,
-		},
+
+	var tabs = []tabs.Tab{
+		tabs.NewTrainingMenuTab(),
+		tabs.NewPredictTab(),
+	}
+
+	var ui *UI = &UI{
+		mainWindow:     views.NewMainWindow(tabs),
 		selectedColumn: 0,
 	}
+
+	ui.menuSideBar = views.NewMenuSideBar(tabs, ui.ActivateTab)
+
+	return ui
 }
 
 // Init returns an initial commands for the app
 func (u UI) Init() tea.Cmd {
 	return nil // no init command
+}
+
+func (u UI) ActivateTab(tabName string) {
+	u.mainWindow.SetCurrentTab(tabName)
+	u.selectedColumn = 1
+}
+
+func (u UI) updateComponent(message tea.KeyMsg) tea.Cmd {
+
+	var cmd tea.Cmd
+
+	switch u.selectedColumn {
+	case 0:
+		cmd = u.menuSideBar.Update(message)
+	case 1:
+		cmd = u.mainWindow.Update(message)
+	}
+	return cmd
 }
 
 // Update handlers incoming messages and updates the model
@@ -56,14 +73,13 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 			return u, tea.Quit
 
 		case "right":
-			u.selectedColumn = min(len(u.columns)-1, u.selectedColumn+1)
+			u.selectedColumn = min(1, u.selectedColumn+1)
 
 		case "left":
 			u.selectedColumn = max(0, u.selectedColumn-1)
 
 		default:
-			currentColumn := u.columns[u.selectedColumn]
-			cmd = currentColumn.Update(message)
+			cmd = u.updateComponent(message)
 		}
 	}
 
@@ -73,19 +89,24 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 // View renders the current state
 func (u UI) View() tea.View {
 
-	columnViews := make([]string, 0, len(u.columns))
+	columnStyle := styles.BoxStyle.Height(u.height)
+	selectedColumnStyle := styles.SelectedBoxStyle.Height(u.height)
 
-	columnStyle := styles.BoxStyle.
-		Height(u.height)
+	views := []string{
+		u.menuSideBar.View(),
+		u.mainWindow.View(),
+	}
 
-	for i, column := range u.columns {
-		view := columnStyle.Width(int(float32(u.width) * u.proportions[i])).Render(column.View())
-
-		columnViews = append(columnViews, view)
+	if u.selectedColumn == 0 {
+		views[0] = selectedColumnStyle.Width(int(float32(u.width) * 0.25)).Render(views[0])
+		views[1] = columnStyle.Width(int(float32(u.width) * 0.75)).Render(views[1])
+	} else {
+		views[0] = columnStyle.Width(int(float32(u.width) * 0.25)).Render(views[0])
+		views[1] = selectedColumnStyle.Width(int(float32(u.width) * 0.75)).Render(views[1])
 	}
 
 	return tea.NewView(lipgloss.JoinHorizontal(
 		lipgloss.Top,
-		columnViews...,
+		views...,
 	))
 }

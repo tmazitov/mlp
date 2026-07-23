@@ -2,6 +2,7 @@ package views
 
 import (
 	"mlp/internal/ui/styles"
+	"mlp/internal/ui/tabs"
 	"strings"
 
 	tea "charm.land/bubbletea/v2"
@@ -9,7 +10,7 @@ import (
 )
 
 var (
-	titleStyle = lipgloss.NewStyle().
+	logoStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Black).
 			Background(styles.PrimaryColor[500]).
@@ -34,23 +35,25 @@ var (
 )
 
 type MenuSideBar struct {
-	tabs        []string
-	hoveredTab  int
-	selectedTab int
+	tabs         []tabs.Tab
+	tabActivator func(tabName string)
+	hoveredTab   int
+	selectedTab  int
 }
 
-func NewMenuSideBar(tabs []string) *MenuSideBar {
+func NewMenuSideBar(tabs []tabs.Tab, tabActivator func(tabName string)) *MenuSideBar {
 	return &MenuSideBar{
-		tabs:        tabs,
-		hoveredTab:  0,
-		selectedTab: -1,
+		tabs:         tabs,
+		tabActivator: tabActivator,
+		hoveredTab:   0,
+		selectedTab:  -1,
 	}
 }
 
 func (m MenuSideBar) View() string {
 	var contentBuilder strings.Builder
 
-	title := titleStyle.Render("Multilayer Perceptron (MLP)")
+	title := logoStyle.Render("Multilayer Perceptron (MLP)")
 	contentBuilder.WriteString(title)
 	contentBuilder.WriteString("\n\n\n")
 
@@ -71,7 +74,7 @@ func (m MenuSideBar) View() string {
 		default:
 			textStyle = itemStyle
 		}
-		contentBuilder.WriteString(textStyle.Render(item))
+		contentBuilder.WriteString(textStyle.Render(item.Title()))
 		contentBuilder.WriteRune('\n')
 	}
 
@@ -100,6 +103,7 @@ func (m *MenuSideBar) Update(message tea.KeyMsg) tea.Cmd {
 		}
 	case "enter", "space":
 		m.selectedTab = m.hoveredTab
+		m.tabActivator(m.tabs[m.selectedTab].Name())
 	}
 
 	return nil
