@@ -38,7 +38,7 @@ func NewUI() *UI {
 		selectedColumn:     0,
 	}
 
-	ui.menuSideBar = views.NewMenuSideBar(menuTabs, ui.ActivateTab)
+	ui.menuSideBar = views.NewMenuSideBar(menuTabs)
 
 	return ui
 }
@@ -46,11 +46,6 @@ func NewUI() *UI {
 // Init returns an initial commands for the app
 func (u UI) Init() tea.Cmd {
 	return nil // no init command
-}
-
-func (u UI) ActivateTab(tabName string) {
-	u.mainWindow.SetCurrentTab(tabName)
-	u.selectedColumn = 1
 }
 
 func (u UI) updateComponent(message tea.KeyMsg) tea.Cmd {

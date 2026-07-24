@@ -35,18 +35,16 @@ var (
 )
 
 type MenuSideBar struct {
-	tabs         []tabs.Tab
-	tabActivator func(tabName string)
-	hoveredTab   int
-	selectedTab  int
+	tabs        []tabs.Tab
+	hoveredTab  int
+	selectedTab int
 }
 
-func NewMenuSideBar(tabs []tabs.Tab, tabActivator func(tabName string)) *MenuSideBar {
+func NewMenuSideBar(tabs []tabs.Tab) *MenuSideBar {
 	return &MenuSideBar{
-		tabs:         tabs,
-		tabActivator: tabActivator,
-		hoveredTab:   0,
-		selectedTab:  -1,
+		tabs:        tabs,
+		hoveredTab:  0,
+		selectedTab: -1,
 	}
 }
 
@@ -103,7 +101,7 @@ func (m *MenuSideBar) Update(message tea.KeyMsg) tea.Cmd {
 		}
 	case "enter", "space":
 		m.selectedTab = m.hoveredTab
-		m.tabActivator(m.tabs[m.selectedTab].Name())
+		return tabs.SwitchTabCmd(m.tabs[m.selectedTab].Name())
 	}
 
 	return nil
