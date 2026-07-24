@@ -11,6 +11,13 @@ type Tab interface {
 	Name() string
 }
 
+// Sizable is implemented by tabs that need to know the available content
+// area (e.g. to size an internal scrollable viewport) rather than assuming
+// a fixed terminal size.
+type Sizable interface {
+	SetSize(width, height int)
+}
+
 // SwitchTabMsg requests that the active tab be changed to TabName. Tabs emit
 // it (via a tea.Cmd) to navigate elsewhere in response to their own state,
 // e.g. moving from a form to the view that shows its result.

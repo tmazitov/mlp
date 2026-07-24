@@ -24,13 +24,14 @@ func NewUI() *UI {
 	trainingProcessTab := tabs.NewTrainingProcessTab()
 	trainingDoneTab := tabs.NewTrainingDoneTab()
 	predictTab := tabs.NewPredictTab()
+	datasetTab := tabs.NewDatasetTab()
 
 	// allTabs is every tab MainWindow can display, including ones hidden
 	// from the sidebar. menuTabs is only the subset shown in the sidebar —
 	// trainingProcessTab and trainingDoneTab are reachable only by
 	// submitting the training form and letting training run to completion.
-	allTabs := []tabs.Tab{trainingMenuTab, trainingProcessTab, trainingDoneTab, predictTab}
-	menuTabs := []tabs.Tab{trainingMenuTab, predictTab}
+	allTabs := []tabs.Tab{trainingMenuTab, trainingProcessTab, trainingDoneTab, predictTab, datasetTab}
+	menuTabs := []tabs.Tab{trainingMenuTab, predictTab, datasetTab}
 
 	var ui *UI = &UI{
 		mainWindow:         views.NewMainWindow(allTabs),
@@ -70,6 +71,7 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		u.width = message.Width
 		u.height = message.Height
+		u.mainWindow.SetSize(int(float32(u.width)*0.75), u.height)
 	case tabs.SwitchTabMsg:
 		u.mainWindow.SetCurrentTab(message.TabName)
 		u.selectedColumn = 1

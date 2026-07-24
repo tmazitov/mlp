@@ -23,6 +23,17 @@ func (w *MainWindow) SetCurrentTab(tabName string) {
 	w.currentTabName = tabName
 }
 
+// SetSize tells every tab that wants to know (i.e. implements tabs.Sizable)
+// how much content area it will actually be rendered into, so it can size
+// internal scrollable components instead of assuming a fixed terminal size.
+func (w *MainWindow) SetSize(width, height int) {
+	for _, tab := range w.tabs {
+		if sizable, ok := tab.(tabs.Sizable); ok {
+			sizable.SetSize(width, height)
+		}
+	}
+}
+
 func (w MainWindow) currentTab() tabs.Tab {
 	for _, tab := range w.tabs {
 		if tab.Name() == w.currentTabName {
