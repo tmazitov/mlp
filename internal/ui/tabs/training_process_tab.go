@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"strings"
 
+	"mlp/internal/analytics"
+	"mlp/internal/analytics/log"
+	"mlp/internal/network"
 	"mlp/internal/ui/styles"
 
 	"charm.land/bubbles/v2/progress"
@@ -44,6 +47,7 @@ type TrainingProcessTab struct {
 	logs           viewport.Model
 	progressStatus float64
 	logsValues     []string
+	model          *network.MLP
 }
 
 func NewTrainingProcessTab() *TrainingProcessTab {
@@ -66,6 +70,34 @@ func (t *TrainingProcessTab) AddLog(logMessage string) {
 }
 func (t *TrainingProcessTab) UpdateProgressStatus(value float64) {
 	t.progressStatus = value
+}
+
+// StartTraining stores model (created on the training menu tab from the
+// submitted form) and runs it in the background. Tab state may only change
+// inside Update, so the two goroutines below never touch t directly — they
+// report back through program.Send, same as AddLogCmd/UpdateProgressStatusCmd
+// do for in-Update callers.
+func (t *TrainingProcessTab) StartTraining(model *network.MLP, dataset *analytics.Dataset, logs chan log.TrainingStat, epochs int, program *tea.Program) {
+	t.model = model
+
+	go func() {
+		for stat := range logs {
+			program.Send(AddLogMsg{Message: fmt.Sprintf("epoch %d/%d — avg loss %.4f", stat.Epoch+1, epochs, stat.AverageLoss)})
+			program.Send(UpdateProgressStatusMsg{Value: float64(stat.Epoch+1) / float64(epochs)})
+		}
+	}()
+
+	go func() {
+		defer close(logs)
+
+		if err := model.Train(dataset); err != nil {
+			program.Send(AddLogMsg{Message: "training failed: " + err.Error()})
+			return
+		}
+
+		program.Send(UpdateProgressStatusMsg{Value: 1})
+		program.Send(SwitchTabMsg{TabName: TrainingDoneTabName})
+	}()
 }
 
 func (t *TrainingProcessTab) Update(message tea.KeyMsg) tea.Cmd {

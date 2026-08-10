@@ -30,7 +30,7 @@ func NewMLP(config MLPConfig) *MLP {
 	return model
 }
 
-func (m MLP) AddLayer(neuronCount uint, activation activationFunc) {
+func (m *MLP) AddLayer(neuronCount uint, activation activationFunc) {
 	m.layers = append(m.layers, NewLayer(neuronCount, activation))
 }
 
@@ -63,8 +63,9 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 	//
 	// 4. Apply loss vectors for corresponding layers to modify wights and bias.
 
-	// The slice of input vectors
-	inputVectors := make([]vector.Vector[float64], len(m.layers))
+	// The slice of input vectors. One slot for the row's raw features plus
+	// one for every layer's output (inputVectors[l] is layer l's input).
+	inputVectors := make([]vector.Vector[float64], len(m.layers)+1)
 
 	// The slice of loss vectors that dedicated for tuning of layers' weights.
 	// Every layer l(i) after 3-rd stem has it's own loss vector δ(i)
@@ -92,7 +93,7 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 				// l1 -z1-> | -a2-> l2 -z2-> | -a3-> l3 -z3-> | ...
 				// a - input vectors, z - output vectors
 				for i, layer := range m.layers {
-					output := layer.forwardValues(inputVectors[len(inputVectors)-1])
+					output := layer.forwardValues(inputVectors[i])
 					inputVectors[i+1] = output
 				}
 

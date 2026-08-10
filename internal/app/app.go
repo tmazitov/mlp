@@ -12,14 +12,16 @@ type App struct {
 }
 
 func NewApp() *App {
+	uiModel := ui.NewUI()
+	program := tea.NewProgram(uiModel)
+	uiModel.SetProgram(program)
+
 	return &App{
-		teaProgram: tea.NewProgram(ui.NewUI()),
+		teaProgram: program,
 	}
 }
 
 func (a App) Run() error {
-	go simulateTraining(a.teaProgram)
-
 	_, err := a.teaProgram.Run()
 	if err != nil {
 		return fmt.Errorf("app bubbletea error: %w", err)

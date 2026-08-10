@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"mlp/pkg/vector"
 )
 
@@ -20,6 +19,4 @@ func newForwardCache(size int) forwardCache {
 func (f *forwardCache) clean() {
 	clear(f.activation)
 	clear(f.output)
-	fmt.Println("after clear", f.activation)
-	fmt.Println("after clear", f.output)
 }

@@ -47,9 +47,10 @@ func newFormField(label, placeholder string) formField {
 }
 
 type TrainingForm struct {
-	fields   []formField
-	focus    int
-	errorMsg string
+	fields    []formField
+	focus     int
+	errorMsg  string
+	submitted bool
 }
 
 func NewTrainingForm() *TrainingForm {
@@ -90,12 +91,25 @@ func (f *TrainingForm) Update(message tea.KeyMsg) tea.Cmd {
 			return nil
 		}
 		f.errorMsg = ""
-		return SwitchTabCmd("training_process")
+		f.submitted = true
+		return nil
 	}
 
 	var cmd tea.Cmd
 	f.fields[f.focus].input, cmd = f.fields[f.focus].input.Update(message)
 	return cmd
+}
+
+// TakeSubmission reports whether the form was just submitted (all fields
+// valid), consuming the flag so it only fires once per submit. The config
+// was already validated inside Update, so the re-parse here cannot fail.
+func (f *TrainingForm) TakeSubmission() (TrainingConfig, bool) {
+	if !f.submitted {
+		return TrainingConfig{}, false
+	}
+	f.submitted = false
+	cfg, _ := f.Value()
+	return cfg, true
 }
 
 // Value parses and validates the form fields into a TrainingConfig.

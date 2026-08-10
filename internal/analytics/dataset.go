@@ -53,7 +53,7 @@ func (d *Dataset) NewReader() *batchReader {
 	return newBatchReader(d)
 }
 
-func (d Dataset) ExtractFields(fieldNames ...string) Dataset {
+func (d Dataset) ExtractFields(fieldNames ...string) *Dataset {
 	newDataset := Dataset{
 		Rows: make([]Row, 0, len(d.Rows)),
 	}
@@ -62,7 +62,7 @@ func (d Dataset) ExtractFields(fieldNames ...string) Dataset {
 		newDataset.Rows = append(newDataset.Rows, row.ExtractFields(fieldNames...))
 	}
 
-	return newDataset
+	return &newDataset
 }
 
 // ClassCounts returns the number of rows per diagnosis class.

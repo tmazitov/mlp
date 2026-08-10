@@ -22,8 +22,13 @@ func (r *batchReader) Read(batchSize int) ([]Row, error) {
 		return nil, io.EOF
 	}
 
-	result := r.dataset.Rows[r.state : r.state+batchSize]
-	r.state += batchSize
+	end := r.state + batchSize
+	if end > len(r.dataset.Rows) {
+		end = len(r.dataset.Rows)
+	}
+
+	result := r.dataset.Rows[r.state:end]
+	r.state = end
 
 	return result, nil
 }

@@ -15,7 +15,7 @@ func (r Row) DiagnosisVector() vector.Vector[float64] {
 	if r.Diagnosis == "M" {
 		return vector.Vector[float64]{1, 0}
 	}
-	return vector.Vector[float64]{1, 0}
+	return vector.Vector[float64]{0, 1}
 }
 
 func (r Row) ExtractFields(fieldNames ...string) Row {

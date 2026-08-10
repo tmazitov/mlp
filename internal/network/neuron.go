@@ -16,13 +16,13 @@ func newNeuron(id uint, activationFunc activationFunc) *neuron {
 	}
 }
 
-func (n neuron) forward(input vector.Vector[float64]) float64 {
+func (n *neuron) forward(input vector.Vector[float64]) float64 {
 
 	if n.weights == nil {
 		n.bias = 1
 		n.weights = make(vector.Vector[float64], len(input))
-		for range n.weights {
-			n.weights = append(n.weights, 1)
+		for i := range n.weights {
+			n.weights[i] = 1
 		}
 	}
 

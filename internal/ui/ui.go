@@ -16,6 +16,15 @@ type UI struct {
 	selectedColumn     int
 	width              int
 	height             int
+	program            *tea.Program
+}
+
+// SetProgram gives the UI a handle to the running program, so it can hand it
+// to background goroutines (started e.g. once training begins) that need to
+// send messages back in from outside the Update loop. Call it once, right
+// after tea.NewProgram, before Run.
+func (u *UI) SetProgram(program *tea.Program) {
+	u.program = program
 }
 
 func NewUI() *UI {
@@ -79,6 +88,8 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		u.trainingProcessTab.AddLog(message.Message)
 	case tabs.UpdateProgressStatusMsg:
 		u.trainingProcessTab.UpdateProgressStatus(message.Value)
+	case tabs.StartTrainingMsg:
+		u.trainingProcessTab.StartTraining(message.Model, message.Dataset, message.Logs, message.Epochs, u.program)
 	case tea.KeyMsg:
 		switch message.String() {
 
