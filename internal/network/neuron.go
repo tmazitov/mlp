@@ -12,20 +12,46 @@ type neuron struct {
 func newNeuron(id uint, activationFunc activationFunc) *neuron {
 	return &neuron{
 		id:       id,
-		weights:  make(vector.Vector[float64], 0),
-		bias:     1,
 		activate: activationFunc,
 	}
 }
 
 func (n neuron) forward(input vector.Vector[float64]) float64 {
 
+	if n.weights == nil {
+		n.bias = 1
+		n.weights = make(vector.Vector[float64], len(input))
+		for range n.weights {
+			n.weights = append(n.weights, 1)
+		}
+	}
+
 	dot := n.weights.Dot(input) + n.bias
-	switch n.activate {
+
+	return activate(n.activate, dot)
+}
+
+func (n *neuron) applyLoss(deltaW vector.Vector[float64], deltaB float64) {
+	n.weights = n.weights.Sub(deltaW)
+	n.bias = n.bias - deltaB
+}
+
+func activate(activation activationFunc, input float64) float64 {
+	switch activation {
 	case SigmoidActivation:
-		return sigmoidActivation(dot)
+		return sigmoidActivation(input)
 	case SoftmaxActivation:
-		return dot
+		return input
+	}
+	return 0
+}
+
+func derivative(activation activationFunc, input float64) float64 {
+	switch activation {
+	case SigmoidActivation:
+		return sigmoidDerivative(input)
+	case SoftmaxActivation:
+		return input
 	}
 	return 0
 }

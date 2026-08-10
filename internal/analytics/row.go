@@ -11,6 +11,13 @@ type Row struct {
 	extractedIndexes []int
 }
 
+func (r Row) DiagnosisVector() vector.Vector[float64] {
+	if r.Diagnosis == "M" {
+		return vector.Vector[float64]{1, 0}
+	}
+	return vector.Vector[float64]{1, 0}
+}
+
 func (r Row) ExtractFields(fieldNames ...string) Row {
 
 	indexMap := indexNames(FeatureNames)

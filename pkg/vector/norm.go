@@ -1,8 +1,8 @@
 package vector
 
-func (v Vector[K]) Norm1() float32 {
+func (v Vector[K]) Norm1() float64 {
 
-	var sum float32 = 0.0
+	var sum float64 = 0.0
 
 	if len(v) == 0 {
 		return 0
@@ -12,7 +12,7 @@ func (v Vector[K]) Norm1() float32 {
 		if value < 0 {
 			value *= -1
 		}
-		sum += float32(value)
+		sum += float64(value)
 	}
 
 	return sum
@@ -35,7 +35,7 @@ func sqrt(x float64) float64 {
 	return guess
 }
 
-func (v Vector[K]) Norm() float32 {
+func (v Vector[K]) Norm() float64 {
 
 	var sum float64 = 0.0
 
@@ -48,10 +48,10 @@ func (v Vector[K]) Norm() float32 {
 		sum = fma(f, f, sum)
 	}
 
-	return float32(sqrt(sum))
+	return sqrt(sum)
 }
 
-func (v Vector[K]) NormInf() float32 {
+func (v Vector[K]) NormInf() float64 {
 
 	if len(v) == 0 {
 		return 0
@@ -72,5 +72,5 @@ func (v Vector[K]) NormInf() float32 {
 			max = float64(value)
 		}
 	}
-	return float32(max)
+	return max
 }

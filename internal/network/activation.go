@@ -13,9 +13,10 @@ var (
 )
 
 func sigmoidActivation(input float64) float64 {
+	return 1 / (1 + math.Exp(-input))
+}
 
-	output := 1 / (1 + math.Exp(-input))
-
+func sigmoidDerivative(output float64) float64 {
 	return output * (1 - output)
 }
 
