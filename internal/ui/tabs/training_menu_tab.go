@@ -8,6 +8,7 @@ import (
 	"mlp/internal/analytics"
 	"mlp/internal/analytics/log"
 	"mlp/internal/network"
+	"mlp/internal/network/activation"
 	"mlp/internal/ui/styles"
 
 	tea "charm.land/bubbletea/v2"
@@ -91,16 +92,25 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 
 	model := network.NewMLP(mlpConfig)
 
+	sigmoid := activation.SigmoidFunc{}
+	softmax := activation.SoftMaxFunc{}
+
 	// Inner layer (hardcoded and based on parameters)
-	model.AddLayer(8, network.SigmoidActivation)
+	if err := model.AddLayer(8, sigmoid); err != nil {
+		return nil, nil, err
+	}
 
 	// Hidden layers
 	for _, size := range cfg.layers {
-		model.AddLayer(uint(size), network.SigmoidActivation)
+		if err := model.AddLayer(uint(size), sigmoid); err != nil {
+			return nil, nil, err
+		}
 	}
 
 	// Outer layer
-	model.AddLayer(2, network.SoftmaxActivation)
+	if err := model.AddLayer(2, softmax); err != nil {
+		return nil, nil, err
+	}
 
 	return model, logs, nil
 }

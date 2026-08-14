@@ -30,8 +30,15 @@ func NewMLP(config MLPConfig) *MLP {
 	return model
 }
 
-func (m *MLP) AddLayer(neuronCount uint, activation activationFunc) {
-	m.layers = append(m.layers, NewLayer(neuronCount, activation))
+func (m *MLP) AddLayer(neuronCount uint, activation activationFunc) error {
+
+	layer, err := NewLayer(neuronCount, activation)
+	if err != nil {
+		return err
+	}
+
+	m.layers = append(m.layers, layer)
+	return nil
 }
 
 func (m MLP) Train(dataset *analytics.Dataset) error {
@@ -123,7 +130,7 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 
 						weightLossSum := nextLayer.calcWeightLossSum(lastLossVector, i)
 
-						derivative := currentLayer.calcDerivative(i)
+						derivative := currentLayer.Derivative(i)
 
 						lossVector[i] = weightLossSum * derivative
 					}

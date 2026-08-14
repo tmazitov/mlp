@@ -1,28 +1,43 @@
 package network
 
 import (
-	"math"
+	"mlp/internal/network/neuron"
 	"mlp/pkg/vector"
 )
 
-type Layer struct {
-	neurons    []*neuron
-	activation activationFunc
-	cache      forwardCache
+type activationFunc interface {
+	Name() string
+	Activate(vector.Vector[float64]) vector.Vector[float64]
+	Derivative(vector.Vector[float64]) vector.Vector[float64]
 }
 
-func NewLayer(neuronCount uint, activation activationFunc) *Layer {
+type Layer struct {
+	neurons    []*neuron.Neuron
+	activation activationFunc
+	cache      layerCache
+}
 
-	neurons := make([]*neuron, 0, neuronCount)
+func NewLayer(neuronCount uint, activation activationFunc) (*Layer, error) {
+
+	neurons := make([]*neuron.Neuron, 0, neuronCount)
 	for i := range neuronCount {
-		neurons = append(neurons, newNeuron(i, activation))
+		neurons = append(neurons, neuron.NewNeuron(i))
 	}
 
 	return &Layer{
 		neurons:    neurons,
 		activation: activation,
-		cache:      newForwardCache(int(neuronCount)),
-	}
+		cache:      newLayerCache(int(neuronCount)),
+	}, nil
+}
+
+// ActivationFunc Section
+
+func (l Layer) activate(input vector.Vector[float64]) vector.Vector[float64] {
+	return l.activation.Activate(input)
+}
+func (l Layer) derivative(input vector.Vector[float64]) vector.Vector[float64] {
+	return l.activation.Derivative(input)
 }
 
 // forwardValues allows to pass forward input vector and, using it, calculate
@@ -34,19 +49,19 @@ func NewLayer(neuronCount uint, activation activationFunc) *Layer {
 // - output layer		  -> respond with activation vector (for farther percent calculation and evaluation)
 func (l *Layer) forwardValues(inputs vector.Vector[float64]) vector.Vector[float64] {
 
-	// Apply input vector on each neuron
-	// and record as an element of activation vector
+	// 1. Calculate sum vector using neurons' weights and input vector
+	sumVector := make(vector.Vector[float64], len(l.neurons))
 	for i, neuron := range l.neurons {
-		l.cache.activation[i] = neuron.forward(inputs)
+		sumVector[i] = neuron.Sum(inputs)
 	}
 
-	// If layer type is not outer
-	if l.activation == SoftmaxActivation {
-		l.cache.output = softmaxActivation(l.cache.activation)
-		return l.cache.output
-	}
-
+	// 2. Receive activation vector using activation function (sigmoid, softmax, etc.)
+	l.cache.activation = l.activate(sumVector)
 	l.cache.output = l.cache.activation
+
+	// 3. Get derivative vector, that will be needed for local loss func
+	l.cache.derivative = l.derivative(l.cache.output)
+
 	return l.cache.activation
 }
 
@@ -54,19 +69,25 @@ func (l Layer) cleanCache() {
 	l.cache.clean()
 }
 
+// calcWeightLossSum calculates a dot product of
+//
+// * local loss vector
+//
+// * weight column vector (vector as a column of weights with specific index)
 func (l Layer) calcWeightLossSum(lossVector vector.Vector[float64], index int) float64 {
-	var sum float64
 
+	// Make weight vector as a column with specific index (take 1 element by index from each neuron's weight)
+	weightColumnVector := make(vector.Vector[float64], len(l.neurons))
 	for i, neuron := range l.neurons {
-		sum = math.FMA(neuron.weights[index], lossVector[i], sum)
+		weightColumnVector[i] = neuron.Weight()[index]
 	}
-	return sum
+
+	// Make a dot product
+	return weightColumnVector.Dot(lossVector)
 }
 
-func (l Layer) calcDerivative(index int) float64 {
-	currentValue := l.cache.output[index]
-
-	return derivative(l.activation, currentValue)
+func (l Layer) Derivative(index int) float64 {
+	return l.cache.output[index]
 }
 
 func (l Layer) applyLoss(lossVector, inputs vector.Vector[float64]) {
@@ -75,6 +96,6 @@ func (l Layer) applyLoss(lossVector, inputs vector.Vector[float64]) {
 		deltaW := inputs.Scl(lossVector[i])
 		deltaB := lossVector[i]
 
-		neuron.applyLoss(deltaW, deltaB)
+		neuron.ApplyLoss(deltaW, deltaB)
 	}
 }
