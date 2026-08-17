@@ -5,7 +5,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 
 	"mlp/internal/analytics"
@@ -32,6 +31,6 @@ func run(dataPath, outDir string) error {
 		return err
 	}
 
-	fmt.Printf("charts saved to %s\n", outDir)
+	// fmt.Printf("charts saved to %s\n", outDir)
 	return nil
 }

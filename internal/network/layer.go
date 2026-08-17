@@ -1,7 +1,6 @@
 package network
 
 import (
-	"fmt"
 	"mlp/internal/network/neuron"
 	"mlp/pkg/vector"
 )
@@ -99,6 +98,6 @@ func (l Layer) applyLoss(lossVector, inputs vector.Vector[float64]) {
 
 		neuron.ApplyLoss(deltaW, deltaB)
 
-		fmt.Println("Layer local loss:", deltaW, deltaB)
+		// fmt.Println("Layer local loss:", deltaW, deltaB)
 	}
 }

@@ -59,7 +59,7 @@ func (t *TrainingMenuTab) Update(message tea.KeyMsg) tea.Cmd {
 		"compactness_worst",
 	}
 
-	dataset = dataset.ExtractFields(fieldsToTrain...)
+	dataset = dataset.ExtractFields(fieldsToTrain...).Standardize()
 
 	return tea.Batch(cmd, SwitchTabCmd("training_process"), StartTrainingCmd(model, dataset, logs, int(cfg.epochs)))
 }
