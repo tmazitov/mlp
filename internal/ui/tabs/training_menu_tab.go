@@ -9,6 +9,7 @@ import (
 	"mlp/internal/analytics/log"
 	"mlp/internal/network"
 	"mlp/internal/network/activation"
+	"mlp/internal/network/neuron"
 	"mlp/internal/ui/styles"
 
 	tea "charm.land/bubbletea/v2"
@@ -95,20 +96,35 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 	sigmoid := activation.SigmoidFunc{}
 	softmax := activation.SoftMaxFunc{}
 
-	// Inner layer (hardcoded and based on parameters)
-	if err := model.AddLayer(8, sigmoid); err != nil {
-		return nil, nil, err
-	}
+	// Combine input, hidden and output layers
+	layers := []uint{8}
+	layers = append(layers, cfg.layers...)
+	layers = append(layers, 2)
 
-	// Hidden layers
-	for _, size := range cfg.layers {
-		if err := model.AddLayer(uint(size), sigmoid); err != nil {
+	// Setup all hidden layers
+	for i := 1; i <= len(layers)-2; i++ {
+
+		neuronParams := neuron.NeuronParams{
+			InitType:     neuron.XavierInitFunc,
+			NIn:          layers[i-1],
+			NOut:         layers[i],
+			LearningRate: cfg.learningRate,
+		}
+
+		size := layers[i]
+
+		if err := model.AddLayer(size, sigmoid, neuronParams); err != nil {
 			return nil, nil, err
 		}
 	}
 
 	// Outer layer
-	if err := model.AddLayer(2, softmax); err != nil {
+	if err := model.AddLayer(2, softmax, neuron.NeuronParams{
+		InitType:     neuron.XavierInitFunc,
+		NIn:          layers[len(layers)-2],
+		NOut:         layers[len(layers)-1],
+		LearningRate: cfg.learningRate,
+	}); err != nil {
 		return nil, nil, err
 	}
 

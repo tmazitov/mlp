@@ -13,7 +13,7 @@ import (
 )
 
 type TrainingConfig struct {
-	layers       []uint16
+	layers       []uint
 	epochs       uint16
 	lossFunc     string
 	batchSize    string
@@ -149,8 +149,8 @@ func (f *TrainingForm) Value() (TrainingConfig, error) {
 	return cfg, nil
 }
 
-func parseLayers(raw string) ([]uint16, error) {
-	layers := make([]uint16, 0)
+func parseLayers(raw string) ([]uint, error) {
+	layers := make([]uint, 0)
 	for _, part := range strings.Split(raw, ",") {
 		part = strings.TrimSpace(part)
 		if part == "" {
@@ -160,7 +160,7 @@ func parseLayers(raw string) ([]uint16, error) {
 		if err != nil {
 			return nil, fmt.Errorf("invalid layer size %q", part)
 		}
-		layers = append(layers, uint16(v))
+		layers = append(layers, uint(v))
 	}
 	if len(layers) == 0 {
 		return nil, fmt.Errorf("at least one layer required")

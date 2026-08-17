@@ -4,6 +4,7 @@ import (
 	"io"
 	"mlp/internal/analytics"
 	"mlp/internal/analytics/log"
+	"mlp/internal/network/neuron"
 	"mlp/pkg/vector"
 )
 
@@ -30,9 +31,9 @@ func NewMLP(config MLPConfig) *MLP {
 	return model
 }
 
-func (m *MLP) AddLayer(neuronCount uint, activation activationFunc) error {
+func (m *MLP) AddLayer(neuronCount uint, activation activationFunc, neuronParams neuron.NeuronParams) error {
 
-	layer, err := NewLayer(neuronCount, activation)
+	layer, err := NewLayer(neuronCount, activation, neuronParams)
 	if err != nil {
 		return err
 	}
@@ -118,7 +119,7 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 
 				// Backward loop move through layers to calculate local loss.
 				// It starts from last hidden layer.
-				for l := len(m.layers) - 2; l > 0; l-- {
+				for l := len(m.layers) - 2; l >= 0; l-- {
 
 					currentLayer := m.layers[l]
 					nextLayer := m.layers[l+1]

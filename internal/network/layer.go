@@ -1,6 +1,7 @@
 package network
 
 import (
+	"fmt"
 	"mlp/internal/network/neuron"
 	"mlp/pkg/vector"
 )
@@ -17,11 +18,11 @@ type Layer struct {
 	cache      layerCache
 }
 
-func NewLayer(neuronCount uint, activation activationFunc) (*Layer, error) {
+func NewLayer(neuronCount uint, activation activationFunc, neuronParams neuron.NeuronParams) (*Layer, error) {
 
 	neurons := make([]*neuron.Neuron, 0, neuronCount)
 	for i := range neuronCount {
-		neurons = append(neurons, neuron.NewNeuron(i))
+		neurons = append(neurons, neuron.NewNeuron(i, neuronParams))
 	}
 
 	return &Layer{
@@ -87,7 +88,7 @@ func (l Layer) calcWeightLossSum(lossVector vector.Vector[float64], index int) f
 }
 
 func (l Layer) Derivative(index int) float64 {
-	return l.cache.output[index]
+	return l.cache.derivative[index]
 }
 
 func (l Layer) applyLoss(lossVector, inputs vector.Vector[float64]) {
@@ -97,5 +98,7 @@ func (l Layer) applyLoss(lossVector, inputs vector.Vector[float64]) {
 		deltaB := lossVector[i]
 
 		neuron.ApplyLoss(deltaW, deltaB)
+
+		fmt.Println("Layer local loss:", deltaW, deltaB)
 	}
 }
