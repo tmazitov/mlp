@@ -90,14 +90,20 @@ func (l Layer) Derivative(index int) float64 {
 	return l.cache.derivative[index]
 }
 
-func (l Layer) applyLoss(lossVector, inputs vector.Vector[float64]) {
+func (l Layer) addBatchLoss(lossVector, inputs vector.Vector[float64]) {
 	for i, neuron := range l.neurons {
 
 		deltaW := inputs.Scl(lossVector[i])
 		deltaB := lossVector[i]
 
-		neuron.ApplyLoss(deltaW, deltaB)
+		neuron.AddBatchLoss(deltaW, deltaB)
 
 		// fmt.Println("Layer local loss:", deltaW, deltaB)
+	}
+}
+
+func (l Layer) applyLoss() {
+	for _, neuron := range l.neurons {
+		neuron.ApplyLoss()
 	}
 }

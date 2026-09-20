@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"mlp/internal/analytics"
+	"mlp/internal/analytics/charts"
 	"mlp/internal/analytics/log"
 	"mlp/internal/network"
 	"mlp/internal/ui/styles"
@@ -12,7 +13,10 @@ import (
 	"charm.land/bubbles/v2/progress"
 	"charm.land/bubbles/v2/viewport"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
+
+const trainingOutputDir = "training_output"
 
 // AddLogMsg appends a line to the training process log.
 type AddLogMsg struct {
@@ -48,6 +52,8 @@ type TrainingProcessTab struct {
 	progressStatus float64
 	logsValues     []string
 	model          *network.MLP
+	mascot         Mascot
+	animating      bool
 }
 
 func NewTrainingProcessTab() *TrainingProcessTab {
@@ -70,6 +76,24 @@ func (t *TrainingProcessTab) AddLog(logMessage string) {
 }
 func (t *TrainingProcessTab) UpdateProgressStatus(value float64) {
 	t.progressStatus = value
+
+	// Training is over, so the mascot has nothing left to breathe through —
+	// letting it settle also ends the animation tick loop (see Animating).
+	if value >= 1 {
+		t.animating = false
+	}
+}
+
+// TickMascot advances the mascot animation by one frame.
+func (t *TrainingProcessTab) TickMascot() {
+	t.mascot.Tick()
+}
+
+// Animating reports whether the mascot should keep moving. The Update loop
+// only reschedules MascotTickCmd while this holds, so the animation costs
+// nothing once training has finished.
+func (t *TrainingProcessTab) Animating() bool {
+	return t.animating
 }
 
 // StartTraining stores model (created on the training menu tab from the
@@ -77,20 +101,48 @@ func (t *TrainingProcessTab) UpdateProgressStatus(value float64) {
 // inside Update, so the two goroutines below never touch t directly — they
 // report back through program.Send, same as AddLogCmd/UpdateProgressStatusCmd
 // do for in-Update callers.
-func (t *TrainingProcessTab) StartTraining(model *network.MLP, dataset *analytics.Dataset, logs chan log.TrainingStat, epochs int, program *tea.Program) {
+func (t *TrainingProcessTab) StartTraining(model *network.MLP, trainSet, valSet *analytics.Dataset, logs chan log.TrainingStat, epochs int, program *tea.Program) {
 	t.model = model
+	t.animating = true
 
 	go func() {
+		trainLosses := make([]float64, 0, epochs)
+		valLosses := make([]float64, 0, epochs)
+		trainAcc := make([]float64, 0, epochs)
+		valAcc := make([]float64, 0, epochs)
+
 		for stat := range logs {
-			program.Send(AddLogMsg{Message: fmt.Sprintf("epoch %d/%d — avg loss %.4f", stat.Epoch+1, epochs, stat.AverageLoss)})
+			trainLosses = append(trainLosses, stat.TrainLoss)
+			valLosses = append(valLosses, stat.ValLoss)
+			trainAcc = append(trainAcc, stat.TrainAccuracy)
+			valAcc = append(valAcc, stat.ValAccuracy)
+
+			program.Send(AddLogMsg{Message: fmt.Sprintf(
+				"epoch %d/%d — loss %.4f/%.4f (train/val) — acc %.4f/%.4f (train/val)",
+				stat.Epoch+1, epochs, stat.TrainLoss, stat.ValLoss, stat.TrainAccuracy, stat.ValAccuracy,
+			)})
 			program.Send(UpdateProgressStatusMsg{Value: float64(stat.Epoch+1) / float64(epochs)})
+		}
+
+		// logs closes once training finishes (see the goroutine below), so
+		// by this point every slice above holds one entry per epoch.
+		if lossPath, err := charts.LossCurve(trainLosses, valLosses, trainingOutputDir); err != nil {
+			program.Send(AddLogMsg{Message: "loss curve: " + err.Error()})
+		} else {
+			program.Send(SetLossCurveMsg{Path: lossPath})
+		}
+
+		if accPath, err := charts.AccuracyCurve(trainAcc, valAcc, trainingOutputDir); err != nil {
+			program.Send(AddLogMsg{Message: "accuracy curve: " + err.Error()})
+		} else {
+			program.Send(SetAccuracyCurveMsg{Path: accPath})
 		}
 	}()
 
 	go func() {
 		defer close(logs)
 
-		if err := model.Train(dataset); err != nil {
+		if err := model.Train(trainSet, valSet); err != nil {
 			program.Send(AddLogMsg{Message: "training failed: " + err.Error()})
 			return
 		}
@@ -124,12 +176,17 @@ func (t *TrainingProcessTab) View() string {
 	b.WriteString(t.progress.ViewAs(t.progressStatus))
 	b.WriteString("\n\n")
 
-	//Logs viewport
+	//Logs viewport, with the mascot floating alongside it
 	t.logs.SetContentLines(t.logsValues)
 	t.logs.GotoBottom()
 	b.WriteString(styles.FormLabelStyle.Render("Logs"))
 	b.WriteRune('\n')
-	b.WriteString(styles.BoxStyle.Render(t.logs.View()))
+	b.WriteString(lipgloss.JoinHorizontal(
+		lipgloss.Center,
+		styles.BoxStyle.Render(t.logs.View()),
+		"  ",
+		t.mascot.View(),
+	))
 
 	return b.String()
 }

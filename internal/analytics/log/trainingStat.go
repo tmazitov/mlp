@@ -1,28 +1,13 @@
 package log
 
+// TrainingStat reports one epoch's training and validation metrics: loss
+// (average NormInf of predict-answer over the epoch's rows) and
+// classification accuracy (share of rows where the predicted class,
+// argmax(predict), matches the true one, argmax(answer)).
 type TrainingStat struct {
-	Epoch       int
-	AverageLoss float64
-}
-
-func NewTrainingStat(epoch int, loss []float64) TrainingStat {
-
-	return TrainingStat{
-		Epoch:       epoch,
-		AverageLoss: averageLoss(loss),
-	}
-}
-
-func averageLoss(loss []float64) float64 {
-
-	if len(loss) == 0 {
-		return 0
-	}
-
-	var sum float64
-	for _, value := range loss {
-		sum += value
-	}
-
-	return sum / float64(len(loss))
+	Epoch         int
+	TrainLoss     float64
+	ValLoss       float64
+	TrainAccuracy float64
+	ValAccuracy   float64
 }

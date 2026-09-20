@@ -13,6 +13,7 @@ type UI struct {
 	menuSideBar        *views.MenuSideBar
 	mainWindow         *views.MainWindow
 	trainingProcessTab *tabs.TrainingProcessTab
+	trainingDoneTab    *tabs.TrainingDoneTab
 	selectedColumn     int
 	width              int
 	height             int
@@ -45,6 +46,7 @@ func NewUI() *UI {
 	var ui *UI = &UI{
 		mainWindow:         views.NewMainWindow(allTabs),
 		trainingProcessTab: trainingProcessTab,
+		trainingDoneTab:    trainingDoneTab,
 		selectedColumn:     0,
 	}
 
@@ -89,7 +91,19 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tabs.UpdateProgressStatusMsg:
 		u.trainingProcessTab.UpdateProgressStatus(message.Value)
 	case tabs.StartTrainingMsg:
-		u.trainingProcessTab.StartTraining(message.Model, message.Dataset, message.Logs, message.Epochs, u.program)
+		u.trainingProcessTab.StartTraining(message.Model, message.Train, message.Val, message.Logs, message.Epochs, u.program)
+		// Kick off the mascot animation loop; it keeps itself alive below
+		// for as long as training runs.
+		cmd = tabs.MascotTickCmd()
+	case tabs.MascotTickMsg:
+		if u.trainingProcessTab.Animating() {
+			u.trainingProcessTab.TickMascot()
+			cmd = tabs.MascotTickCmd()
+		}
+	case tabs.SetLossCurveMsg:
+		u.trainingDoneTab.SetLossCurvePath(message.Path)
+	case tabs.SetAccuracyCurveMsg:
+		u.trainingDoneTab.SetAccuracyCurvePath(message.Path)
 	case tea.KeyMsg:
 		switch message.String() {
 

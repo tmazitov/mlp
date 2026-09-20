@@ -59,9 +59,17 @@ func (t *TrainingMenuTab) Update(message tea.KeyMsg) tea.Cmd {
 		"compactness_worst",
 	}
 
-	dataset = dataset.ExtractFields(fieldsToTrain...).Standardize()
+	dataset = dataset.ExtractFields(fieldsToTrain...)
 
-	return tea.Batch(cmd, SwitchTabCmd("training_process"), StartTrainingCmd(model, dataset, logs, int(cfg.epochs)))
+	// Split before standardizing: mean/stddev are fit on the training rows
+	// only, then reapplied to validation — fitting on the combined set
+	// would leak validation statistics into training.
+	trainSet, valSet := dataset.Split(0.8)
+	scaler := trainSet.Fit()
+	trainSet = scaler.Apply(trainSet)
+	valSet = scaler.Apply(valSet)
+
+	return tea.Batch(cmd, SwitchTabCmd("training_process"), StartTrainingCmd(model, trainSet, valSet, logs, int(cfg.epochs)))
 }
 
 // buildModel turns a validated TrainingConfig into a ready-to-run MLP. The
@@ -120,7 +128,7 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 
 	// Outer layer
 	if err := model.AddLayer(2, softmax, neuron.NeuronParams{
-		InitType:     neuron.XavierInitFunc,
+		InitType:     neuron.HeInitFunc,
 		NIn:          layers[len(layers)-2],
 		NOut:         layers[len(layers)-1],
 		LearningRate: cfg.learningRate,

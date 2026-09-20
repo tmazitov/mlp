@@ -2,7 +2,10 @@ package tabs
 
 import (
 	"os/exec"
+	"path/filepath"
 	"runtime"
+
+	"mlp/internal/ui/styles"
 )
 
 // openInSystemViewer opens path in whatever application the OS has
@@ -20,4 +23,16 @@ func openInSystemViewer(path string) error {
 		cmd = exec.Command("xdg-open", path)
 	}
 	return cmd.Start()
+}
+
+// fileLink renders path as a clickable terminal hyperlink (OSC 8). The URL
+// must be absolute — "file://" + a relative path parses the first segment as
+// a hostname and no link handler can open it — so the path is resolved
+// against the working directory first, and the absolute form is what gets
+// displayed too, so it can be copied as-is.
+func fileLink(path string) string {
+	if abs, err := filepath.Abs(path); err == nil {
+		path = abs
+	}
+	return styles.LinkStyle.Hyperlink("file://" + path).Render(path)
 }

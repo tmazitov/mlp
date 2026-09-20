@@ -15,8 +15,22 @@ const TrainingDoneTabName = "training_done"
 
 const mockWeightsPath = "./checkpoints/model.mlp"
 
+// SetLossCurveMsg sets the path to the just-generated training-loss chart
+// on the Done tab, once StartTraining has finished writing it.
+type SetLossCurveMsg struct {
+	Path string
+}
+
+// SetAccuracyCurveMsg sets the path to the just-generated accuracy chart
+// on the Done tab, once StartTraining has finished writing it.
+type SetAccuracyCurveMsg struct {
+	Path string
+}
+
 type TrainingDoneTab struct {
-	weightsPath string
+	weightsPath       string
+	lossCurvePath     string
+	accuracyCurvePath string
 }
 
 func NewTrainingDoneTab() *TrainingDoneTab {
@@ -27,6 +41,18 @@ func NewTrainingDoneTab() *TrainingDoneTab {
 
 func (t *TrainingDoneTab) Name() string  { return TrainingDoneTabName }
 func (t *TrainingDoneTab) Title() string { return "Done!" }
+
+// SetLossCurvePath records where the loss chart for this run was saved, so
+// View can link to it.
+func (t *TrainingDoneTab) SetLossCurvePath(path string) {
+	t.lossCurvePath = path
+}
+
+// SetAccuracyCurvePath records where the accuracy chart for this run was
+// saved, so View can link to it.
+func (t *TrainingDoneTab) SetAccuracyCurvePath(path string) {
+	t.accuracyCurvePath = path
+}
 
 func (t *TrainingDoneTab) Update(message tea.KeyMsg) tea.Cmd {
 	return nil
@@ -41,8 +67,20 @@ func (t *TrainingDoneTab) View() string {
 	b.WriteString("The MLP model was trained successfully!")
 	b.WriteString("\n\n")
 
-	link := styles.LinkStyle.Hyperlink("file://" + t.weightsPath).Render(t.weightsPath)
-	b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Weights were saved in %s", link)))
+	if t.lossCurvePath != "" {
+		lossLink := fileLink(t.lossCurvePath)
+		b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Loss curve saved in %s", lossLink)))
+		b.WriteString("\n\n")
+	}
+
+	if t.accuracyCurvePath != "" {
+		accLink := fileLink(t.accuracyCurvePath)
+		b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Accuracy curve saved in %s", accLink)))
+		b.WriteString("\n\n")
+	}
+
+	weightsLink := fileLink(t.weightsPath)
+	b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Weights were saved in %s", weightsLink)))
 
 	return b.String()
 }

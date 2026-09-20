@@ -42,9 +42,9 @@ func (m *MLP) AddLayer(neuronCount uint, activation activationFunc, neuronParams
 	return nil
 }
 
-func (m MLP) Train(dataset *analytics.Dataset) error {
+func (m MLP) Train(trainSet, valSet *analytics.Dataset) error {
 
-	if dataset == nil {
+	if trainSet == nil {
 		return ErrModelTrainWithoutDataset
 	}
 
@@ -52,7 +52,7 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 		return ErrModelWithoutLayers
 	}
 
-	reader := dataset.NewReader()
+	reader := trainSet.NewReader()
 
 	// General explanation of training:
 	//
@@ -81,7 +81,8 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 
 	for epoch := range m.config.Epochs {
 
-		lossValues := []float64{}
+		var trainLossSum, trainCorrect float64
+		var trainCount int
 
 		for {
 			batch, err := reader.Read(m.config.BatchSize)
@@ -114,8 +115,12 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 				// usage of 2 algorithms together: Softmax + Cross Entropy
 				layerLossVectors[len(m.layers)-1] = predict.Sub(answerVector)
 
-				// Save loss value for statistics
-				lossValues = append(lossValues, float64(layerLossVectors[len(m.layers)-1].NormInf()))
+				// Save loss/accuracy for this epoch's training statistics
+				trainLossSum += float64(layerLossVectors[len(m.layers)-1].NormInf())
+				if predict.ArgMax() == answerVector.ArgMax() {
+					trainCorrect++
+				}
+				trainCount++
 
 				// Backward loop move through layers to calculate local loss.
 				// It starts from last hidden layer.
@@ -139,12 +144,21 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 					layerLossVectors[l] = lossVector
 				}
 
-				// Apply local loss value for each layer
+				// Accumulate this row's gradient for every layer.
+				//
+				// Caches must NOT be cleaned inside this loop: inputVectors[l+1]
+				// is the very slice layer l stored as cache.activation (see
+				// forwardValues), so cleaning layer l here would zero the inputs
+				// layer l+1 is about to multiply its delta by — leaving every
+				// layer after the first with a zero weight gradient.
 				for l, layer := range m.layers {
 					if layerLossVectors[l] == nil {
 						continue
 					}
-					layer.applyLoss(layerLossVectors[l], inputVectors[l])
+					layer.addBatchLoss(layerLossVectors[l], inputVectors[l])
+				}
+
+				for _, layer := range m.layers {
 					layer.cleanCache()
 				}
 
@@ -152,10 +166,24 @@ func (m MLP) Train(dataset *analytics.Dataset) error {
 				clear(layerLossVectors)
 			}
 
+			for _, layer := range m.layers {
+				layer.applyLoss()
+			}
+
 		}
+		// Evaluate on the held-out validation set — a forward-only pass, so
+		// it never influences the weights, only the reported metrics.
+		valLoss, valAccuracy := m.evaluate(valSet)
+
 		// Log the epoch's result using specific chanel if its proceeded
 		if m.config.LogsChan != nil {
-			m.config.LogsChan <- log.NewTrainingStat(epoch, lossValues)
+			m.config.LogsChan <- log.TrainingStat{
+				Epoch:         epoch,
+				TrainLoss:     trainLossSum / float64(trainCount),
+				ValLoss:       valLoss,
+				TrainAccuracy: trainCorrect / float64(trainCount),
+				ValAccuracy:   valAccuracy,
+			}
 		}
 
 		// Start batch reading from the beginning
