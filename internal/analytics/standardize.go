@@ -71,3 +71,17 @@ func (s FeatureScaler) Apply(d *Dataset) *Dataset {
 func (d *Dataset) Standardize() *Dataset {
 	return d.Fit().Apply(d)
 }
+
+// Mean and StdDev expose the fitted per-column parameters so a trained
+// model can store them. Prediction has to reuse the exact numbers the
+// training set was scaled with — refitting on whatever rows are being
+// predicted would feed the network a differently-scaled input than the one
+// it learned on.
+func (s FeatureScaler) Mean() []float64   { return s.mean }
+func (s FeatureScaler) StdDev() []float64 { return s.stddev }
+
+// NewFeatureScaler rebuilds a scaler from previously fitted parameters,
+// e.g. ones read back out of a saved model.
+func NewFeatureScaler(mean, stddev []float64) FeatureScaler {
+	return FeatureScaler{mean: mean, stddev: stddev}
+}

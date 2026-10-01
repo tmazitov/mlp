@@ -13,11 +13,14 @@ import (
 // listed in the sidebar — it's reached automatically once training finishes.
 const TrainingDoneTabName = "training_done"
 
-const mockWeightsPath = "./checkpoints/model.mlp"
-
 // SetLossCurveMsg sets the path to the just-generated training-loss chart
 // on the Done tab, once StartTraining has finished writing it.
 type SetLossCurveMsg struct {
+	Path string
+}
+
+// SetWeightsPathMsg records where the training phase saved the model.
+type SetWeightsPathMsg struct {
 	Path string
 }
 
@@ -34,9 +37,12 @@ type TrainingDoneTab struct {
 }
 
 func NewTrainingDoneTab() *TrainingDoneTab {
-	return &TrainingDoneTab{
-		weightsPath: mockWeightsPath,
-	}
+	return &TrainingDoneTab{}
+}
+
+// SetWeightsPath records where this run's model was written.
+func (t *TrainingDoneTab) SetWeightsPath(path string) {
+	t.weightsPath = path
 }
 
 func (t *TrainingDoneTab) Name() string  { return TrainingDoneTabName }
@@ -79,8 +85,10 @@ func (t *TrainingDoneTab) View() string {
 		b.WriteString("\n\n")
 	}
 
-	weightsLink := fileLink(t.weightsPath)
-	b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Weights were saved in %s", weightsLink)))
+	if t.weightsPath != "" {
+		weightsLink := fileLink(t.weightsPath)
+		b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Model saved in %s", weightsLink)))
+	}
 
 	return b.String()
 }

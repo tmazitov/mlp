@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"mlp/internal/analytics"
 	"mlp/internal/analytics/charts"
-	"mlp/internal/analytics/log"
 	"mlp/internal/network"
 	"mlp/internal/ui/styles"
 
@@ -16,7 +14,10 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-const trainingOutputDir = "training_output"
+const (
+	trainingOutputDir = "training_output"
+	modelFilePath     = "model.json"
+)
 
 // AddLogMsg appends a line to the training process log.
 type AddLogMsg struct {
@@ -101,7 +102,9 @@ func (t *TrainingProcessTab) Animating() bool {
 // inside Update, so the two goroutines below never touch t directly — they
 // report back through program.Send, same as AddLogCmd/UpdateProgressStatusCmd
 // do for in-Update callers.
-func (t *TrainingProcessTab) StartTraining(model *network.MLP, trainSet, valSet *analytics.Dataset, logs chan log.TrainingStat, epochs int, program *tea.Program) {
+func (t *TrainingProcessTab) StartTraining(msg StartTrainingMsg, program *tea.Program) {
+	model, trainSet, valSet := msg.Model, msg.Train, msg.Val
+	logs, epochs := msg.Logs, msg.Epochs
 	t.model = model
 	t.animating = true
 
@@ -145,6 +148,16 @@ func (t *TrainingProcessTab) StartTraining(model *network.MLP, trainSet, valSet 
 		if err := model.Train(trainSet, valSet); err != nil {
 			program.Send(AddLogMsg{Message: "training failed: " + err.Error()})
 			return
+		}
+
+		// The subject asks the training phase to save the model at the end
+		// of its run, so prediction has something to load.
+		trained := &network.TrainedModel{Network: model, Fields: msg.Fields, Scaler: msg.Scaler}
+		if err := trained.Save(modelFilePath); err != nil {
+			program.Send(AddLogMsg{Message: "save model: " + err.Error()})
+		} else {
+			program.Send(AddLogMsg{Message: "model saved to " + modelFilePath})
+			program.Send(SetWeightsPathMsg{Path: modelFilePath})
 		}
 
 		program.Send(UpdateProgressStatusMsg{Value: 1})

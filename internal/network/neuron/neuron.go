@@ -63,3 +63,15 @@ func (n Neuron) Bias() float64                  { return n.bias }
 func (n Neuron) Sum(input vector.Vector[float64]) float64 {
 	return n.weights.Dot(input) + n.bias
 }
+
+// FromWeights rebuilds a neuron with known weights and bias, skipping the
+// random initialisation NewNeuron performs. Used when loading a trained
+// model: the saved numbers are the whole point, and re-rolling them would
+// throw the training away.
+func FromWeights(id uint, weights vector.Vector[float64], bias float64) *Neuron {
+	return &Neuron{
+		id:      id,
+		weights: weights,
+		bias:    bias,
+	}
+}

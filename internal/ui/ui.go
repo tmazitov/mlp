@@ -92,7 +92,7 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 	case tabs.UpdateProgressStatusMsg:
 		u.trainingProcessTab.UpdateProgressStatus(message.Value)
 	case tabs.StartTrainingMsg:
-		u.trainingProcessTab.StartTraining(message.Model, message.Train, message.Val, message.Logs, message.Epochs, u.program)
+		u.trainingProcessTab.StartTraining(message, u.program)
 		// Kick off the mascot animation loop; it keeps itself alive below
 		// for as long as training runs.
 		cmd = tabs.MascotTickCmd()
@@ -105,6 +105,8 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		u.trainingDoneTab.SetLossCurvePath(message.Path)
 	case tabs.SetAccuracyCurveMsg:
 		u.trainingDoneTab.SetAccuracyCurvePath(message.Path)
+	case tabs.SetWeightsPathMsg:
+		u.trainingDoneTab.SetWeightsPath(message.Path)
 	case tea.KeyMsg:
 		switch message.String() {
 

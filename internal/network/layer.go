@@ -1,6 +1,9 @@
 package network
 
 import (
+	"fmt"
+
+	"mlp/internal/network/activation"
 	"mlp/internal/network/neuron"
 	"mlp/pkg/vector"
 )
@@ -106,4 +109,30 @@ func (l Layer) applyLoss() {
 	for _, neuron := range l.neurons {
 		neuron.ApplyLoss()
 	}
+}
+
+// layerFromNeurons rebuilds a layer around neurons that already carry their
+// trained weights, used when loading a saved model.
+func layerFromNeurons(neurons []*neuron.Neuron, activation activationFunc) *Layer {
+	return &Layer{
+		neurons:    neurons,
+		activation: activation,
+		cache:      newLayerCache(len(neurons)),
+	}
+}
+
+// activationByName maps the name stored in a saved model back to the
+// implementation. Saving the name rather than anything structural is what
+// keeps a model file readable and lets a human see which activations a
+// network was built from.
+func activationByName(name string) (activationFunc, error) {
+	for _, candidate := range []activationFunc{
+		activation.SigmoidFunc{},
+		activation.SoftMaxFunc{},
+	} {
+		if candidate.Name() == name {
+			return candidate, nil
+		}
+	}
+	return nil, fmt.Errorf("%w: %q", ErrUndefinedActivationFunc, name)
 }

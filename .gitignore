@@ -9,3 +9,6 @@ training_output/
 # produced by the split phase
 data_training.csv
 data_validation.csv
+
+# produced by the training phase
+model.json

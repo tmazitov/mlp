@@ -78,7 +78,8 @@ func (t *TrainingMenuTab) Update(message tea.KeyMsg) tea.Cmd {
 	trainSet = scaler.Apply(trainSet)
 	valSet = scaler.Apply(valSet)
 
-	return tea.Batch(cmd, SwitchTabCmd("training_process"), StartTrainingCmd(model, trainSet, valSet, logs, int(cfg.epochs)))
+	return tea.Batch(cmd, SwitchTabCmd("training_process"),
+		StartTrainingCmd(model, trainSet, valSet, logs, int(cfg.epochs), fieldsToTrain, scaler))
 }
 
 // buildModel turns a validated TrainingConfig into a ready-to-run MLP. The
