@@ -35,13 +35,14 @@ func NewUI() *UI {
 	trainingDoneTab := tabs.NewTrainingDoneTab()
 	predictTab := tabs.NewPredictTab()
 	datasetTab := tabs.NewDatasetTab()
+	splitTab := tabs.NewSplitTab()
 
 	// allTabs is every tab MainWindow can display, including ones hidden
 	// from the sidebar. menuTabs is only the subset shown in the sidebar —
 	// trainingProcessTab and trainingDoneTab are reachable only by
 	// submitting the training form and letting training run to completion.
-	allTabs := []tabs.Tab{trainingMenuTab, trainingProcessTab, trainingDoneTab, predictTab, datasetTab}
-	menuTabs := []tabs.Tab{trainingMenuTab, predictTab, datasetTab}
+	allTabs := []tabs.Tab{datasetTab, splitTab, trainingMenuTab, trainingProcessTab, trainingDoneTab, predictTab}
+	menuTabs := []tabs.Tab{datasetTab, splitTab, trainingMenuTab, predictTab}
 
 	var ui *UI = &UI{
 		mainWindow:         views.NewMainWindow(allTabs),

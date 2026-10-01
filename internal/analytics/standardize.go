@@ -55,6 +55,7 @@ func (s FeatureScaler) Apply(d *Dataset) *Dataset {
 		}
 
 		rows[i] = Row{
+			ID:               row.ID,
 			Diagnosis:        row.Diagnosis,
 			Features:         features,
 			extractedIndexes: row.extractedIndexes,

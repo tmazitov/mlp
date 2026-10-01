@@ -41,6 +41,7 @@ func Load(path string) (*Dataset, error) {
 		}
 
 		ds.Rows = append(ds.Rows, Row{
+			ID:        record[0],
 			Diagnosis: record[1],
 			Features:  features,
 		})

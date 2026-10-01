@@ -5,3 +5,7 @@ training_output/
 /mlp
 /analyze
 .deps.stamp
+
+# produced by the split phase
+data_training.csv
+data_validation.csv

@@ -42,9 +42,18 @@ func (t *TrainingMenuTab) Update(message tea.KeyMsg) tea.Cmd {
 		return cmd
 	}
 
-	dataset, err := analytics.Load(datasetCSVPath)
+	// The two sets come from the split phase (see split_tab.go), not from
+	// re-dividing data.csv here — otherwise the files that phase writes
+	// would have no effect on what is actually trained.
+	trainSet, err := analytics.Load(trainingCSVPath)
 	if err != nil {
-		t.form.errorMsg = fmt.Sprintf("load dataset: %v", err)
+		t.form.errorMsg = fmt.Sprintf("load %s: %v — run the Split tab first", trainingCSVPath, err)
+		return cmd
+	}
+
+	valSet, err := analytics.Load(validationCSVPath)
+	if err != nil {
+		t.form.errorMsg = fmt.Sprintf("load %s: %v — run the Split tab first", validationCSVPath, err)
 		return cmd
 	}
 
@@ -59,12 +68,12 @@ func (t *TrainingMenuTab) Update(message tea.KeyMsg) tea.Cmd {
 		"compactness_worst",
 	}
 
-	dataset = dataset.ExtractFields(fieldsToTrain...)
+	trainSet = trainSet.ExtractFields(fieldsToTrain...)
+	valSet = valSet.ExtractFields(fieldsToTrain...)
 
-	// Split before standardizing: mean/stddev are fit on the training rows
-	// only, then reapplied to validation — fitting on the combined set
-	// would leak validation statistics into training.
-	trainSet, valSet := dataset.Split(0.8)
+	// mean/stddev are fit on the training rows only, then reapplied to
+	// validation — fitting on the combined set would leak validation
+	// statistics into training.
 	scaler := trainSet.Fit()
 	trainSet = scaler.Apply(trainSet)
 	valSet = scaler.Apply(valSet)

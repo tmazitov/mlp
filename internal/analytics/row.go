@@ -6,6 +6,10 @@ import (
 )
 
 type Row struct {
+	// ID is the dataset's first column. It is not a feature and never
+	// reaches the network, but it is kept so a row written back out to CSV
+	// has the same 32-column shape Load expects to read.
+	ID               string
 	Diagnosis        string
 	Features         vector.Vector[float64]
 	extractedIndexes []int
@@ -23,6 +27,7 @@ func (r Row) ExtractFields(fieldNames ...string) Row {
 	indexMap := indexNames(FeatureNames)
 
 	newRow := Row{
+		ID:        r.ID,
 		Diagnosis: r.Diagnosis,
 		Features:  make([]float64, 0, len(fieldNames)),
 	}
