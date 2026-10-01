@@ -93,8 +93,6 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 		LogsChan:  logs,
 	}
 	switch cfg.lossFunc {
-	case "mse":
-		mlpConfig.LossFunc = network.MSELossFunc
 	case "cross-entropy":
 		mlpConfig.LossFunc = network.CrossEntropyLossFunc
 	}

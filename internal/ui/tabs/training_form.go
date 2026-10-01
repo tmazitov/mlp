@@ -20,7 +20,7 @@ type TrainingConfig struct {
 	learningRate float64
 }
 
-var allowedLossFunctions = []string{"mse", "cross-entropy"}
+var allowedLossFunctions = []string{"cross-entropy"}
 
 const (
 	fieldLayers = iota
@@ -57,7 +57,7 @@ func NewTrainingForm() *TrainingForm {
 	fields := make([]formField, fieldCount)
 	fields[fieldLayers] = newFormField("Layers (comma-separated)", "784,128,64,10")
 	fields[fieldEpochs] = newFormField("Epochs", "10")
-	fields[fieldLossFunc] = newFormField(fmt.Sprintf("Loss function (%s)", strings.Join(allowedLossFunctions, ", ")), "mse")
+	fields[fieldLossFunc] = newFormField(fmt.Sprintf("Loss function (%s)", strings.Join(allowedLossFunctions, ", ")), "cross-entropy")
 	fields[fieldBatchSize] = newFormField("Batch size", "32")
 	fields[fieldLearningRate] = newFormField("Learning rate", "0.01")
 

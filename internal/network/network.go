@@ -52,6 +52,10 @@ func (m MLP) Train(trainSet, valSet *analytics.Dataset) error {
 		return ErrModelWithoutLayers
 	}
 
+	if m.config.LossFunc != CrossEntropyLossFunc {
+		return ErrUnsupportedLossFunc
+	}
+
 	reader := trainSet.NewReader()
 
 	// General explanation of training:
@@ -115,8 +119,11 @@ func (m MLP) Train(trainSet, valSet *analytics.Dataset) error {
 				// usage of 2 algorithms together: Softmax + Cross Entropy
 				layerLossVectors[len(m.layers)-1] = predict.Sub(answerVector)
 
-				// Save loss/accuracy for this epoch's training statistics
-				trainLossSum += float64(layerLossVectors[len(m.layers)-1].NormInf())
+				// Save loss/accuracy for this epoch's training statistics.
+				// This is the reported metric; the gradient above is the
+				// softmax+cross-entropy shortcut, which is why cross-entropy
+				// is the only loss Train accepts.
+				trainLossSum += crossEntropyLoss(answerVector, predict)
 				if predict.ArgMax() == answerVector.ArgMax() {
 					trainCorrect++
 				}
