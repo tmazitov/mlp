@@ -1,2 +1,7 @@
 analytics_output/
 training_output/
+
+# build artifacts
+/mlp
+/analyze
+.deps.stamp
