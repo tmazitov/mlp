@@ -13,6 +13,7 @@ type UI struct {
 	menuSideBar        *views.MenuSideBar
 	mainWindow         *views.MainWindow
 	trainingProcessTab *tabs.TrainingProcessTab
+	modelsTab          *tabs.ModelsTab
 	trainingDoneTab    *tabs.TrainingDoneTab
 	selectedColumn     int
 	width              int
@@ -36,17 +37,19 @@ func NewUI() *UI {
 	predictTab := tabs.NewPredictTab()
 	datasetTab := tabs.NewDatasetTab()
 	splitTab := tabs.NewSplitTab()
+	modelsTab := tabs.NewModelsTab()
 
 	// allTabs is every tab MainWindow can display, including ones hidden
 	// from the sidebar. menuTabs is only the subset shown in the sidebar —
 	// trainingProcessTab and trainingDoneTab are reachable only by
 	// submitting the training form and letting training run to completion.
-	allTabs := []tabs.Tab{datasetTab, splitTab, trainingMenuTab, trainingProcessTab, trainingDoneTab, predictTab}
-	menuTabs := []tabs.Tab{datasetTab, splitTab, trainingMenuTab, predictTab}
+	allTabs := []tabs.Tab{datasetTab, splitTab, trainingMenuTab, trainingProcessTab, trainingDoneTab, modelsTab, predictTab}
+	menuTabs := []tabs.Tab{datasetTab, splitTab, trainingMenuTab, modelsTab, predictTab}
 
 	var ui *UI = &UI{
 		mainWindow:         views.NewMainWindow(allTabs),
 		trainingProcessTab: trainingProcessTab,
+		modelsTab:          modelsTab,
 		trainingDoneTab:    trainingDoneTab,
 		selectedColumn:     0,
 	}
@@ -107,6 +110,18 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		u.trainingDoneTab.SetAccuracyCurvePath(message.Path)
 	case tabs.SetWeightsPathMsg:
 		u.trainingDoneTab.SetWeightsPath(message.Path)
+	case tabs.ModelProgressMsg:
+		u.modelsTab.ApplyProgress(message)
+	case tabs.ModelFinishedMsg:
+		u.modelsTab.ApplyFinished(message)
+	case tabs.ComparisonReadyMsg:
+		// The goroutines only signal that they are done; the charts are
+		// drawn here, on the Update loop, where reading their histories
+		// cannot race the runs that filled them.
+		if message.LossPath == "" && message.Err == nil {
+			message = u.modelsTab.BuildComparison()
+		}
+		u.modelsTab.ApplyComparison(message)
 	case tea.KeyMsg:
 		switch message.String() {
 
@@ -118,6 +133,13 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "left":
 			u.selectedColumn = max(0, u.selectedColumn-1)
+
+		case "enter":
+			if u.selectedColumn == 1 && u.mainWindow.CurrentTabName() == "models" {
+				u.modelsTab.Run(u.program)
+				break
+			}
+			cmd = u.updateComponent(message)
 
 		default:
 			cmd = u.updateComponent(message)

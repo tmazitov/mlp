@@ -77,6 +77,29 @@ and on completion writes two learning curves to `training_output/`:
 - `loss_curve.png` — training and validation loss per epoch
 - `accuracy_curve.png` — training and validation accuracy per epoch
 
+### Comparing configurations
+
+The **Models** tab keeps a list of configurations and trains the selected
+ones at the same time, each in its own goroutine, charting them together
+once all have finished.
+
+| Key | Does |
+| --- | --- |
+| `↑` / `↓` | move through the list |
+| `space` | select or deselect a configuration |
+| `a` | add a new one, using the training form |
+| `d` | delete the highlighted one |
+| `enter` | train everything selected |
+
+The result is two charts in `training_output/`, one line per model:
+`comparison_loss.png` and `comparison_accuracy.png`. They plot validation
+curves only — adding each model's training curve would double the lines to
+say how well a model fits rows it has already seen, which is not what is
+being compared.
+
+The list starts with the three optimizers at the learning rate each one
+wants, which is a comparison worth seeing first.
+
 ### 3. Predict
 
 Loads `model.json`, scores it against a labelled set (`data_validation.csv`

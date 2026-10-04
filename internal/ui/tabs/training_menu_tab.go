@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	"mlp/internal/analytics"
 	"mlp/internal/analytics/log"
 	"mlp/internal/network"
 	"mlp/internal/network/activation"
@@ -42,44 +41,14 @@ func (t *TrainingMenuTab) Update(message tea.KeyMsg) tea.Cmd {
 		return cmd
 	}
 
-	// The two sets come from the split phase (see split_tab.go), not from
-	// re-dividing data.csv here — otherwise the files that phase writes
-	// would have no effect on what is actually trained.
-	trainSet, err := analytics.Load(trainingCSVPath)
+	data, err := loadTrainingData()
 	if err != nil {
-		t.form.errorMsg = fmt.Sprintf("load %s: %v — run the Split tab first", trainingCSVPath, err)
+		t.form.errorMsg = err.Error()
 		return cmd
 	}
-
-	valSet, err := analytics.Load(validationCSVPath)
-	if err != nil {
-		t.form.errorMsg = fmt.Sprintf("load %s: %v — run the Split tab first", validationCSVPath, err)
-		return cmd
-	}
-
-	fieldsToTrain := []string{
-		"area_worst",
-		"concave_points_worst",
-		"concavity_mean",
-		"texture_worst",
-		"smoothness_worst",
-		"symmetry_worst",
-		"fractal_dimension_worst",
-		"compactness_worst",
-	}
-
-	trainSet = trainSet.ExtractFields(fieldsToTrain...)
-	valSet = valSet.ExtractFields(fieldsToTrain...)
-
-	// mean/stddev are fit on the training rows only, then reapplied to
-	// validation — fitting on the combined set would leak validation
-	// statistics into training.
-	scaler := trainSet.Fit()
-	trainSet = scaler.Apply(trainSet)
-	valSet = scaler.Apply(valSet)
 
 	return tea.Batch(cmd, SwitchTabCmd("training_process"),
-		StartTrainingCmd(model, trainSet, valSet, logs, int(cfg.epochs), fieldsToTrain, scaler))
+		StartTrainingCmd(model, data.train, data.val, logs, int(cfg.epochs), fieldsToTrain, data.scaler))
 }
 
 // buildModel turns a validated TrainingConfig into a ready-to-run MLP. The
