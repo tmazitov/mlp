@@ -9,12 +9,10 @@ import (
 )
 
 type MLPConfig struct {
-	Epochs         int
-	BatchSize      int
-	LossFunc       lossFunc
-	Mode           modelMode
-	LogsChan       chan log.TrainingStat
-	WeightFilePath string
+	Epochs    int
+	BatchSize int
+	LossFunc  lossFunc
+	LogsChan  chan log.TrainingStat
 }
 
 type MLP struct {

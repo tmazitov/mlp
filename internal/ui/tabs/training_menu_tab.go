@@ -99,7 +99,6 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 	mlpConfig := network.MLPConfig{
 		Epochs:    int(cfg.epochs),
 		BatchSize: batchSize,
-		Mode:      network.TrainingMode,
 		LogsChan:  logs,
 	}
 	switch cfg.lossFunc {

@@ -56,12 +56,25 @@ type TrainingForm struct {
 func NewTrainingForm() *TrainingForm {
 	fields := make([]formField, fieldCount)
 	fields[fieldLayers] = newFormField("Layers (comma-separated)", "8, 8, 8")
-	fields[fieldLayers].input.SetValue("8, 8")
+	fields[fieldEpochs] = newFormField("Epochs", "3000")
+	fields[fieldLossFunc] = newFormField(
+		fmt.Sprintf("Loss function (%s)", strings.Join(allowedLossFunctions, ", ")), "cross-entropy")
+	fields[fieldBatchSize] = newFormField("Batch size", "16")
+	fields[fieldLearningRate] = newFormField("Learning rate", "0.05")
 
-	fields[fieldEpochs] = newFormField("Epochs", "10")
-	fields[fieldLossFunc] = newFormField(fmt.Sprintf("Loss function (%s)", strings.Join(allowedLossFunctions, ", ")), "cross-entropy")
-	fields[fieldBatchSize] = newFormField("Batch size", "32")
-	fields[fieldLearningRate] = newFormField("Learning rate", "0.01")
+	// Prefill rather than rely on the placeholders: a placeholder is only a
+	// hint, so an untouched field still reads as empty and fails validation.
+	// The defaults give two hidden layers, as the subject requires, and
+	// hyperparameters that are known to converge on this dataset.
+	for i, value := range map[int]string{
+		fieldLayers:       "8, 8",
+		fieldEpochs:       "3000",
+		fieldLossFunc:     "cross-entropy",
+		fieldBatchSize:    "16",
+		fieldLearningRate: "0.05",
+	} {
+		fields[i].input.SetValue(value)
+	}
 
 	form := &TrainingForm{fields: fields}
 	form.fields[form.focus].input.Focus()

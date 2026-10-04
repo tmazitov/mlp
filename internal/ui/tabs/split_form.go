@@ -43,6 +43,12 @@ func NewSplitForm() *SplitForm {
 		fmt.Sprintf("Shuffle rows first (%s)", strings.Join(allowedShuffleAnswers, ", ")), "yes")
 	fields[fieldSeed] = newFormField("Seed (blank = different every run)", "42")
 
+	// Prefill the two required fields: a placeholder is only a hint, so an
+	// untouched field reads as empty and fails validation. The seed is left
+	// blank on purpose — that is what asks for a fresh split each run.
+	fields[fieldRatio].input.SetValue("80/20")
+	fields[fieldShuffle].input.SetValue("yes")
+
 	form := &SplitForm{fields: fields}
 	form.fields[form.focus].input.Focus()
 

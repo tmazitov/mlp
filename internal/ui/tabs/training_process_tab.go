@@ -108,6 +108,16 @@ func (t *TrainingProcessTab) StartTraining(msg StartTrainingMsg, program *tea.Pr
 	t.model = model
 	t.animating = true
 
+	// The subject's example output opens with the shapes of the two sets,
+	// which is also the quickest way to see that the split and the field
+	// selection did what you expected before the epochs start scrolling.
+	features := 0
+	if len(trainSet.Rows) > 0 {
+		features = len(trainSet.Rows[0].Features)
+	}
+	program.Send(AddLogMsg{Message: fmt.Sprintf("x_train shape : (%d, %d)", len(trainSet.Rows), features)})
+	program.Send(AddLogMsg{Message: fmt.Sprintf("x_valid shape : (%d, %d)", len(valSet.Rows), features)})
+
 	go func() {
 		trainLosses := make([]float64, 0, epochs)
 		valLosses := make([]float64, 0, epochs)
