@@ -55,7 +55,9 @@ type TrainingForm struct {
 
 func NewTrainingForm() *TrainingForm {
 	fields := make([]formField, fieldCount)
-	fields[fieldLayers] = newFormField("Layers (comma-separated)", "784,128,64,10")
+	fields[fieldLayers] = newFormField("Layers (comma-separated)", "8, 8, 8")
+	fields[fieldLayers].input.SetValue("8, 8")
+
 	fields[fieldEpochs] = newFormField("Epochs", "10")
 	fields[fieldLossFunc] = newFormField(fmt.Sprintf("Loss function (%s)", strings.Join(allowedLossFunctions, ", ")), "cross-entropy")
 	fields[fieldBatchSize] = newFormField("Batch size", "32")
