@@ -56,6 +56,20 @@ Reads the two files from the split phase, trains, and writes `model.json`.
 | Loss function | `cross-entropy` | the only one implemented, and what the backward pass optimises |
 | Batch size | `16` | rows per weight update |
 | Learning rate | `0.05` | step size |
+| Optimizer | `sgd` | how the gradient becomes a step |
+
+### Optimizers
+
+| Name | Update | Notes |
+| --- | --- | --- |
+| `sgd` | `w -= lr * g` | the plain step |
+| `nesterov` | momentum, `v = 0.9v + g`, `w -= lr * (g + 0.9v)` | accelerates along a consistent direction and damps zig-zagging; converges noticeably faster early on |
+| `rmsprop` | `s = 0.9s + 0.1g²`, `w -= lr * g / (sqrt(s) + 1e-8)` | scales each parameter's step by its own recent gradient size |
+
+RMSProp normalises the step by gradient magnitude rather than scaling by
+it, so it wants a much smaller learning rate than the others — around
+`0.001`. At `0.05` it reaches a good validation loss within tens of epochs
+and then degrades.
 
 The network reports training and validation loss and accuracy every epoch,
 and on completion writes two learning curves to `training_output/`:

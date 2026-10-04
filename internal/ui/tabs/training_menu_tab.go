@@ -108,6 +108,14 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 
 	model := network.NewMLP(mlpConfig)
 
+	optimizer := neuron.SGDOptimizer
+	switch cfg.optimizer {
+	case "nesterov":
+		optimizer = neuron.NesterovOptimizer
+	case "rmsprop":
+		optimizer = neuron.RMSPropOptimizer
+	}
+
 	sigmoid := activation.SigmoidFunc{}
 	softmax := activation.SoftMaxFunc{}
 
@@ -124,6 +132,7 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 			NIn:          layers[i-1],
 			NOut:         layers[i],
 			LearningRate: cfg.learningRate,
+			Optimizer:    optimizer,
 		}
 
 		size := layers[i]
@@ -139,6 +148,7 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 		NIn:          layers[len(layers)-2],
 		NOut:         layers[len(layers)-1],
 		LearningRate: cfg.learningRate,
+		Optimizer:    optimizer,
 	}); err != nil {
 		return nil, nil, err
 	}

@@ -9,6 +9,7 @@ type NeuronParams struct {
 	NOut         uint
 	InitType     WeightInitFunc
 	LearningRate float64
+	Optimizer    OptimizerFunc
 }
 
 type Neuron struct {
@@ -17,13 +18,18 @@ type Neuron struct {
 	weights   vector.Vector[float64]
 	params    NeuronParams
 	lossCache lossCache
+
+	// optimizer is per-neuron: momentum and squared-gradient averages are
+	// state about this neuron's own parameters.
+	optimizer optimizer
 }
 
 func NewNeuron(id uint, params NeuronParams) *Neuron {
 
 	n := &Neuron{
-		id:     id,
-		params: params,
+		id:        id,
+		params:    params,
+		optimizer: newOptimizer(params.Optimizer, params.LearningRate),
 	}
 
 	n.initWeights()
@@ -52,9 +58,10 @@ func (n *Neuron) ApplyLoss() {
 	avgDeltaWeights, avgDeltaBias := n.lossCache.GetAverage()
 	defer n.lossCache.Clear()
 
-	n.weights = n.weights.Sub(avgDeltaWeights.Scl(n.params.LearningRate))
-	n.bias = n.bias - avgDeltaBias*n.params.LearningRate
+	stepWeights, stepBias := n.optimizer.step(avgDeltaWeights, avgDeltaBias)
 
+	n.weights = n.weights.Sub(stepWeights)
+	n.bias = n.bias - stepBias
 }
 
 func (n Neuron) Weight() vector.Vector[float64] { return n.weights }
@@ -70,8 +77,9 @@ func (n Neuron) Sum(input vector.Vector[float64]) float64 {
 // throw the training away.
 func FromWeights(id uint, weights vector.Vector[float64], bias float64) *Neuron {
 	return &Neuron{
-		id:      id,
-		weights: weights,
-		bias:    bias,
+		id:        id,
+		weights:   weights,
+		bias:      bias,
+		optimizer: newOptimizer(SGDOptimizer, 0),
 	}
 }

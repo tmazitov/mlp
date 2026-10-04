@@ -18,9 +18,12 @@ type TrainingConfig struct {
 	lossFunc     string
 	batchSize    string
 	learningRate float64
+	optimizer    string
 }
 
 var allowedLossFunctions = []string{"cross-entropy"}
+
+var allowedOptimizers = []string{"sgd", "nesterov", "rmsprop"}
 
 const (
 	fieldLayers = iota
@@ -28,6 +31,7 @@ const (
 	fieldLossFunc
 	fieldBatchSize
 	fieldLearningRate
+	fieldOptimizer
 	fieldCount
 )
 
@@ -61,6 +65,8 @@ func NewTrainingForm() *TrainingForm {
 		fmt.Sprintf("Loss function (%s)", strings.Join(allowedLossFunctions, ", ")), "cross-entropy")
 	fields[fieldBatchSize] = newFormField("Batch size", "16")
 	fields[fieldLearningRate] = newFormField("Learning rate", "0.05")
+	fields[fieldOptimizer] = newFormField(
+		fmt.Sprintf("Optimizer (%s)", strings.Join(allowedOptimizers, ", ")), "sgd")
 
 	// Prefill rather than rely on the placeholders: a placeholder is only a
 	// hint, so an untouched field still reads as empty and fails validation.
@@ -72,6 +78,7 @@ func NewTrainingForm() *TrainingForm {
 		fieldLossFunc:     "cross-entropy",
 		fieldBatchSize:    "16",
 		fieldLearningRate: "0.05",
+		fieldOptimizer:    "sgd",
 	} {
 		fields[i].input.SetValue(value)
 	}
@@ -160,6 +167,12 @@ func (f *TrainingForm) Value() (TrainingConfig, error) {
 		return cfg, fmt.Errorf("learning rate: %w", err)
 	}
 	cfg.learningRate = learningRate
+
+	optimizer := strings.TrimSpace(f.fields[fieldOptimizer].input.Value())
+	if !slices.Contains(allowedOptimizers, optimizer) {
+		return cfg, fmt.Errorf("optimizer: must be one of %s", strings.Join(allowedOptimizers, ", "))
+	}
+	cfg.optimizer = optimizer
 
 	return cfg, nil
 }
