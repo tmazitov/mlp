@@ -2,6 +2,7 @@ package network
 
 import (
 	"io"
+	"math"
 	"mlp/internal/analytics"
 	"mlp/internal/analytics/log"
 	"mlp/internal/network/neuron"
@@ -13,6 +14,12 @@ type MLPConfig struct {
 	BatchSize int
 	LossFunc  lossFunc
 	LogsChan  chan log.TrainingStat
+
+	// EarlyStopPatience ends the run when validation loss has not improved
+	// for this many epochs in a row, and rolls the weights back to the
+	// epoch that produced the best one. Zero disables it and the run uses
+	// every epoch.
+	EarlyStopPatience int
 }
 
 type MLP struct {
@@ -81,10 +88,19 @@ func (m MLP) Train(trainSet, valSet *analytics.Dataset) error {
 	// Every layer l(i) after 3-rd stem has it's own loss vector δ(i)
 	layerLossVectors := make([]vector.Vector[float64], len(m.layers))
 
+	// Early stopping state. bestLoss starts at infinity so the first epoch
+	// always counts as an improvement.
+	bestLoss := math.Inf(1)
+	bestEpoch := 0
+	var best snapshot
+	sinceImprovement := 0
+
 	for epoch := range m.config.Epochs {
 
-		var trainLossSum, trainCorrect float64
-		var trainCount int
+		// Training metrics come from the rows as they are learned from,
+		// which costs nothing extra: the prediction and the answer are
+		// already in hand for the backward pass.
+		var trainMetrics log.Metrics
 
 		for {
 			batch, err := reader.Read(m.config.BatchSize)
@@ -117,15 +133,11 @@ func (m MLP) Train(trainSet, valSet *analytics.Dataset) error {
 				// usage of 2 algorithms together: Softmax + Cross Entropy
 				layerLossVectors[len(m.layers)-1] = predict.Sub(answerVector)
 
-				// Save loss/accuracy for this epoch's training statistics.
 				// This is the reported metric; the gradient above is the
 				// softmax+cross-entropy shortcut, which is why cross-entropy
 				// is the only loss Train accepts.
-				trainLossSum += crossEntropyLoss(answerVector, predict)
-				if predict.ArgMax() == answerVector.ArgMax() {
-					trainCorrect++
-				}
-				trainCount++
+				trainMetrics.Loss += crossEntropyLoss(answerVector, predict)
+				recordPrediction(&trainMetrics, predict, answerVector)
 
 				// Backward loop move through layers to calculate local loss.
 				// It starts from last hidden layer.
@@ -176,18 +188,43 @@ func (m MLP) Train(trainSet, valSet *analytics.Dataset) error {
 			}
 
 		}
+		trainMetrics.Loss /= float64(trainMetrics.Rows)
+
 		// Evaluate on the held-out validation set — a forward-only pass, so
 		// it never influences the weights, only the reported metrics.
-		valLoss, valAccuracy := m.evaluate(valSet)
+		valMetrics := m.score(valSet)
 
 		// Log the epoch's result using specific chanel if its proceeded
 		if m.config.LogsChan != nil {
 			m.config.LogsChan <- log.TrainingStat{
-				Epoch:         epoch,
-				TrainLoss:     trainLossSum / float64(trainCount),
-				ValLoss:       valLoss,
-				TrainAccuracy: trainCorrect / float64(trainCount),
-				ValAccuracy:   valAccuracy,
+				Epoch: epoch,
+				Train: trainMetrics,
+				Val:   valMetrics,
+			}
+		}
+
+		if m.config.EarlyStopPatience > 0 {
+			if valMetrics.Loss < bestLoss {
+				bestLoss, bestEpoch, sinceImprovement = valMetrics.Loss, epoch, 0
+				best = m.takeSnapshot()
+			} else {
+				sinceImprovement++
+			}
+
+			if sinceImprovement >= m.config.EarlyStopPatience {
+				// Going back is the point: the epochs since the best one
+				// made the model worse on data it does not learn from.
+				m.restore(best)
+				if m.config.LogsChan != nil {
+					m.config.LogsChan <- log.TrainingStat{
+						Epoch:        epoch,
+						Train:        trainMetrics,
+						Val:          valMetrics,
+						EarlyStopped: true,
+						BestEpoch:    bestEpoch,
+					}
+				}
+				return nil
 			}
 		}
 

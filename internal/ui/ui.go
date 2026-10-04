@@ -108,6 +108,8 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		u.trainingDoneTab.SetLossCurvePath(message.Path)
 	case tabs.SetAccuracyCurveMsg:
 		u.trainingDoneTab.SetAccuracyCurvePath(message.Path)
+	case tabs.SetHistoryPathMsg:
+		u.trainingDoneTab.SetHistoryPath(message.Path)
 	case tabs.SetWeightsPathMsg:
 		u.trainingDoneTab.SetWeightsPath(message.Path)
 	case tabs.RunModelsMsg:

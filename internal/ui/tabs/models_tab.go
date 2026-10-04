@@ -62,11 +62,15 @@ type modelEntry struct {
 	config   TrainingConfig
 	selected bool
 
-	state   runState
-	epoch   int
-	stat    log.TrainingStat
-	history []log.TrainingStat
-	err     error
+	state        runState
+	earlyStopped bool
+	bestEpoch    int
+	epoch        int
+	stat         log.TrainingStat
+	history      []log.TrainingStat
+	err          error
+
+	historyPath string
 }
 
 type ModelsTab struct {
@@ -219,6 +223,12 @@ func (t *ModelsTab) Run(program *tea.Program) {
 			collected := make(chan []log.TrainingStat, 1)
 			go func() {
 				for stat := range logs {
+					// The early-stop marker is a verdict, not an epoch's
+					// worth of data, so it stays out of the curve.
+					if stat.EarlyStopped {
+						program.Send(ModelProgressMsg{Index: index, Stat: stat})
+						continue
+					}
 					history = append(history, stat)
 					program.Send(ModelProgressMsg{Index: index, Stat: stat})
 				}
@@ -244,6 +254,11 @@ func (t *ModelsTab) Run(program *tea.Program) {
 // the only things that write to the entries.
 func (t *ModelsTab) ApplyProgress(msg ModelProgressMsg) {
 	if msg.Index < 0 || msg.Index >= len(t.entries) {
+		return
+	}
+	if msg.Stat.EarlyStopped {
+		t.entries[msg.Index].earlyStopped = true
+		t.entries[msg.Index].bestEpoch = msg.Stat.BestEpoch + 1
 		return
 	}
 	t.entries[msg.Index].epoch = msg.Stat.Epoch + 1
@@ -280,8 +295,8 @@ func (t *ModelsTab) BuildComparison() ComparisonReadyMsg {
 		valLoss := make([]float64, len(entry.history))
 		valAcc := make([]float64, len(entry.history))
 		for i, stat := range entry.history {
-			valLoss[i] = stat.ValLoss
-			valAcc[i] = stat.ValAccuracy
+			valLoss[i] = stat.Val.Loss
+			valAcc[i] = stat.Val.Accuracy()
 		}
 
 		losses = append(losses, charts.LabeledSeries{Name: entry.name, Values: valLoss})
@@ -290,6 +305,19 @@ func (t *ModelsTab) BuildComparison() ComparisonReadyMsg {
 
 	if len(losses) == 0 {
 		return ComparisonReadyMsg{Err: fmt.Errorf("no model finished successfully")}
+	}
+
+	// One history per model, named after it: the comparison charts show
+	// the shape, these keep the numbers behind each line.
+	for i := range t.entries {
+		if t.entries[i].state != runDone || len(t.entries[i].history) == 0 {
+			continue
+		}
+		path, err := log.WriteHistory(t.entries[i].history, t.entries[i].name, comparisonOutputDir)
+		if err != nil {
+			return ComparisonReadyMsg{Err: err}
+		}
+		t.entries[i].historyPath = path
 	}
 
 	lossPath, err := charts.ComparisonCurve(losses,
@@ -396,16 +424,20 @@ func (e modelEntry) statusText() string {
 	switch e.state {
 	case runRunning:
 		return fmt.Sprintf("epoch %d — val loss %.4f acc %.4f",
-			e.epoch, e.stat.ValLoss, e.stat.ValAccuracy)
+			e.epoch, e.stat.Val.Loss, e.stat.Val.Accuracy())
 	case runDone:
-		best := e.stat.ValLoss
+		best := e.stat.Val.Loss
 		for _, stat := range e.history {
-			if stat.ValLoss < best {
-				best = stat.ValLoss
+			if stat.Val.Loss < best {
+				best = stat.Val.Loss
 			}
 		}
+		if e.earlyStopped {
+			return fmt.Sprintf("stopped at epoch %d, best %d — val loss %.4f acc %.4f",
+				e.epoch, e.bestEpoch, best, e.stat.Val.Accuracy())
+		}
 		return fmt.Sprintf("done — val loss %.4f (best %.4f) acc %.4f",
-			e.stat.ValLoss, best, e.stat.ValAccuracy)
+			e.stat.Val.Loss, best, e.stat.Val.Accuracy())
 	case runFailed:
 		return "failed: " + e.err.Error()
 	default:

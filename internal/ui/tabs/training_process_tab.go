@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"mlp/internal/analytics/charts"
+	"mlp/internal/analytics/log"
 	"mlp/internal/network"
 	"mlp/internal/ui/styles"
 
@@ -130,16 +131,26 @@ func (t *TrainingProcessTab) StartTraining(msg StartTrainingMsg, program *tea.Pr
 		valLosses := make([]float64, 0, epochs)
 		trainAcc := make([]float64, 0, epochs)
 		valAcc := make([]float64, 0, epochs)
+		history := make([]log.TrainingStat, 0, epochs)
 
 		for stat := range logs {
-			trainLosses = append(trainLosses, stat.TrainLoss)
-			valLosses = append(valLosses, stat.ValLoss)
-			trainAcc = append(trainAcc, stat.TrainAccuracy)
-			valAcc = append(valAcc, stat.ValAccuracy)
+			if stat.EarlyStopped {
+				program.Send(AddLogMsg{Message: fmt.Sprintf(
+					"early stop at epoch %d — no improvement for %d epochs, weights restored to epoch %d",
+					stat.Epoch+1, stat.Epoch-stat.BestEpoch, stat.BestEpoch+1)})
+				continue
+			}
+			history = append(history, stat)
+			trainLosses = append(trainLosses, stat.Train.Loss)
+			valLosses = append(valLosses, stat.Val.Loss)
+			trainAcc = append(trainAcc, stat.Train.Accuracy())
+			valAcc = append(valAcc, stat.Val.Accuracy())
 
 			program.Send(AddLogMsg{Message: fmt.Sprintf(
-				"epoch %d/%d — loss %.4f/%.4f (train/val) — acc %.4f/%.4f (train/val)",
-				stat.Epoch+1, epochs, stat.TrainLoss, stat.ValLoss, stat.TrainAccuracy, stat.ValAccuracy,
+				"epoch %d/%d — loss %.4f/%.4f — acc %.4f/%.4f — val precision %.4f recall %.4f f1 %.4f",
+				stat.Epoch+1, epochs, stat.Train.Loss, stat.Val.Loss,
+				stat.Train.Accuracy(), stat.Val.Accuracy(),
+				stat.Val.Precision(), stat.Val.Recall(), stat.Val.F1(),
 			)})
 			program.Send(UpdateProgressStatusMsg{Value: float64(stat.Epoch+1) / float64(epochs)})
 		}
@@ -156,6 +167,12 @@ func (t *TrainingProcessTab) StartTraining(msg StartTrainingMsg, program *tea.Pr
 			program.Send(AddLogMsg{Message: "accuracy curve: " + err.Error()})
 		} else {
 			program.Send(SetAccuracyCurveMsg{Path: accPath})
+		}
+
+		if historyPath, err := log.WriteHistory(history, "", trainingOutputDir); err != nil {
+			program.Send(AddLogMsg{Message: "history: " + err.Error()})
+		} else {
+			program.Send(SetHistoryPathMsg{Path: historyPath})
 		}
 	}()
 

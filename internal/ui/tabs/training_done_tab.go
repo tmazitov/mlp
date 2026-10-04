@@ -30,10 +30,22 @@ type SetAccuracyCurveMsg struct {
 	Path string
 }
 
+// SetHistoryPathMsg records where this run's per-epoch metrics were
+// written.
+type SetHistoryPathMsg struct {
+	Path string
+}
+
 type TrainingDoneTab struct {
 	weightsPath       string
 	lossCurvePath     string
 	accuracyCurvePath string
+	historyPath       string
+}
+
+// SetHistoryPath records where this run's metric history was saved.
+func (t *TrainingDoneTab) SetHistoryPath(path string) {
+	t.historyPath = path
 }
 
 func NewTrainingDoneTab() *TrainingDoneTab {
@@ -82,6 +94,12 @@ func (t *TrainingDoneTab) View() string {
 	if t.accuracyCurvePath != "" {
 		accLink := fileLink(t.accuracyCurvePath)
 		b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Accuracy curve saved in %s", accLink)))
+		b.WriteString("\n\n")
+	}
+
+	if t.historyPath != "" {
+		historyLink := fileLink(t.historyPath)
+		b.WriteString(styles.DescriptionStyle.Render(fmt.Sprintf("Metric history saved in %s", historyLink)))
 		b.WriteString("\n\n")
 	}
 

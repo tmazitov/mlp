@@ -83,3 +83,11 @@ func FromWeights(id uint, weights vector.Vector[float64], bias float64) *Neuron 
 		optimizer: newOptimizer(SGDOptimizer, 0),
 	}
 }
+
+// SetParameters overwrites the weights and bias in place, used to restore
+// a snapshot. The optimizer's own state is deliberately left alone: a
+// restore happens at the end of a run, when nothing will step again.
+func (n *Neuron) SetParameters(weights vector.Vector[float64], bias float64) {
+	n.weights = weights
+	n.bias = bias
+}

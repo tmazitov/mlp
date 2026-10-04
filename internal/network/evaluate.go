@@ -1,28 +1,43 @@
 package network
 
-import "mlp/internal/analytics"
+import (
+	"mlp/internal/analytics"
+	"mlp/internal/analytics/log"
+	"mlp/pkg/vector"
+)
 
-// evaluate runs a forward-only pass (no weight updates) over dataset and
-// returns the average cross-entropy loss (the same metric used during
-// training — the two must match or the curves are not comparable) and
-// classification accuracy. Used once per epoch on the held-out
-// validation set, so it never sees the rows it's scored against.
-func (m MLP) evaluate(dataset *analytics.Dataset) (avgLoss, accuracy float64) {
+// score runs a forward-only pass (no weight updates) over dataset and
+// tallies loss and the confusion matrix.
+//
+// Training calls it once per epoch on the held-out validation set, so it
+// never sees the rows it is scored against, and prediction calls it on
+// whatever set it was given. One implementation means the number a run
+// reports and the number a prediction reports are the same measurement.
+func (m MLP) score(dataset *analytics.Dataset) log.Metrics {
+	var metrics log.Metrics
+
 	if dataset == nil || len(dataset.Rows) == 0 {
-		return 0, 0
+		return metrics
 	}
-
-	var lossSum, correct float64
 
 	for _, row := range dataset.Rows {
-		activations := m.forward(row.Features)
+		probabilities := m.forward(row.Features)
 		answer := row.DiagnosisVector()
-		lossSum += crossEntropyLoss(answer, activations)
-		if activations.ArgMax() == answer.ArgMax() {
-			correct++
-		}
+
+		metrics.Loss += crossEntropyLoss(answer, probabilities)
+		recordPrediction(&metrics, probabilities, answer)
 	}
 
-	n := float64(len(dataset.Rows))
-	return lossSum / n, correct / n
+	metrics.Loss /= float64(metrics.Rows)
+	return metrics
+}
+
+// recordPrediction folds one row's outcome into metrics. Both the training
+// loop and score go through here so the positive class is decided in one
+// place.
+func recordPrediction(metrics *log.Metrics, probabilities, answer vector.Vector[float64]) {
+	predicted := classFromIndex(probabilities.ArgMax())
+	actual := classFromIndex(answer.ArgMax())
+
+	metrics.Add(predicted == MalignantClass, actual == MalignantClass)
 }

@@ -66,9 +66,10 @@ func buildModel(cfg TrainingConfig) (*network.MLP, chan log.TrainingStat, error)
 	logs := make(chan log.TrainingStat)
 
 	mlpConfig := network.MLPConfig{
-		Epochs:    int(cfg.epochs),
-		BatchSize: batchSize,
-		LogsChan:  logs,
+		Epochs:            int(cfg.epochs),
+		BatchSize:         batchSize,
+		EarlyStopPatience: int(cfg.patience),
+		LogsChan:          logs,
 	}
 	switch cfg.lossFunc {
 	case "cross-entropy":

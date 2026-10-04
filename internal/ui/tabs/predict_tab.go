@@ -106,11 +106,23 @@ func renderEvaluation(result *predictResult) string {
 	b.WriteString("\n\n")
 
 	b.WriteString(styles.FormLabelStyle.Render(fmt.Sprintf(
-		"binary cross-entropy  %.4f", e.Loss)))
+		"cross-entropy loss    %.4f", e.Loss)))
 	b.WriteRune('\n')
 	b.WriteString(styles.FormLabelStyle.Render(fmt.Sprintf(
 		"accuracy              %.4f  (%d of %d correct)",
-		e.Accuracy, e.TruePositives+e.TrueNegatives, e.Rows)))
+		e.Accuracy(), e.TruePositives+e.TrueNegatives, e.Rows)))
+	b.WriteRune('\n')
+	b.WriteString(styles.FormLabelStyle.Render(fmt.Sprintf(
+		"recall                %.4f  (malignant rows caught)", e.Recall())))
+	b.WriteRune('\n')
+	b.WriteString(styles.FormLabelStyle.Render(fmt.Sprintf(
+		"precision             %.4f  (of those called malignant)", e.Precision())))
+	b.WriteRune('\n')
+	b.WriteString(styles.FormLabelStyle.Render(fmt.Sprintf(
+		"specificity           %.4f  (benign rows left alone)", e.Specificity())))
+	b.WriteRune('\n')
+	b.WriteString(styles.FormLabelStyle.Render(fmt.Sprintf(
+		"f1                    %.4f", e.F1())))
 	b.WriteString("\n\n")
 
 	// A plain accuracy figure hides which way the model errs, and on this

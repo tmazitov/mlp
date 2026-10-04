@@ -19,6 +19,7 @@ type TrainingConfig struct {
 	batchSize    string
 	learningRate float64
 	optimizer    string
+	patience     uint16
 }
 
 var allowedLossFunctions = []string{"cross-entropy"}
@@ -32,6 +33,7 @@ const (
 	fieldBatchSize
 	fieldLearningRate
 	fieldOptimizer
+	fieldPatience
 	fieldCount
 )
 
@@ -67,6 +69,7 @@ func NewTrainingForm() *TrainingForm {
 	fields[fieldLearningRate] = newFormField("Learning rate", "0.05")
 	fields[fieldOptimizer] = newFormField(
 		fmt.Sprintf("Optimizer (%s)", strings.Join(allowedOptimizers, ", ")), "sgd")
+	fields[fieldPatience] = newFormField("Early stopping patience (0 = off)", "0")
 
 	// Prefill rather than rely on the placeholders: a placeholder is only a
 	// hint, so an untouched field still reads as empty and fails validation.
@@ -79,6 +82,7 @@ func NewTrainingForm() *TrainingForm {
 		fieldBatchSize:    "16",
 		fieldLearningRate: "0.05",
 		fieldOptimizer:    "sgd",
+		fieldPatience:     "0",
 	} {
 		fields[i].input.SetValue(value)
 	}
@@ -173,6 +177,12 @@ func (f *TrainingForm) Value() (TrainingConfig, error) {
 		return cfg, fmt.Errorf("optimizer: must be one of %s", strings.Join(allowedOptimizers, ", "))
 	}
 	cfg.optimizer = optimizer
+
+	patience, err := strconv.ParseUint(strings.TrimSpace(f.fields[fieldPatience].input.Value()), 10, 16)
+	if err != nil {
+		return cfg, fmt.Errorf("patience: %w", err)
+	}
+	cfg.patience = uint16(patience)
 
 	return cfg, nil
 }
