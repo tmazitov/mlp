@@ -204,7 +204,3 @@ func (m MLP) Train(trainSet, valSet *analytics.Dataset) error {
 // func (m MLP) calculateInnerLoss(lastLoss vector.Vector[float64]) vector.Vector[float64] {
 
 // }
-
-func (m MLP) Predict(inputs vector.Vector[float64]) predictedClass {
-	return BenignClass
-}

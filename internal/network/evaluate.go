@@ -15,11 +15,7 @@ func (m MLP) evaluate(dataset *analytics.Dataset) (avgLoss, accuracy float64) {
 	var lossSum, correct float64
 
 	for _, row := range dataset.Rows {
-		activations := row.Features
-		for _, layer := range m.layers {
-			activations = layer.forwardValues(activations)
-		}
-
+		activations := m.forward(row.Features)
 		answer := row.DiagnosisVector()
 		lossSum += crossEntropyLoss(answer, activations)
 		if activations.ArgMax() == answer.ArgMax() {
