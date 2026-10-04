@@ -28,6 +28,16 @@ type ModelFinishedMsg struct {
 	Err     error
 }
 
+// RunModelsMsg asks the UI to start the selected runs. The tab cannot do
+// it itself because the goroutines report back through *tea.Program, which
+// only the UI holds — and the UI must not decide when enter means "run",
+// since only the tab knows whether the new-configuration form is open.
+type RunModelsMsg struct{}
+
+func RunModelsCmd() tea.Cmd {
+	return func() tea.Msg { return RunModelsMsg{} }
+}
+
 // ComparisonReadyMsg carries the charts drawn once every selected model
 // has finished.
 type ComparisonReadyMsg struct {
@@ -134,7 +144,7 @@ func (t *ModelsTab) Update(message tea.KeyMsg) tea.Cmd {
 		if len(t.entries) > 0 {
 			t.hovered = (t.hovered + 1) % len(t.entries)
 		}
-	case " ":
+	case "space":
 		if len(t.entries) > 0 {
 			t.entries[t.hovered].selected = !t.entries[t.hovered].selected
 		}
@@ -147,6 +157,8 @@ func (t *ModelsTab) Update(message tea.KeyMsg) tea.Cmd {
 				t.hovered--
 			}
 		}
+	case "enter":
+		return RunModelsCmd()
 	}
 
 	return nil

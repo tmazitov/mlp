@@ -110,6 +110,8 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 		u.trainingDoneTab.SetAccuracyCurvePath(message.Path)
 	case tabs.SetWeightsPathMsg:
 		u.trainingDoneTab.SetWeightsPath(message.Path)
+	case tabs.RunModelsMsg:
+		u.modelsTab.Run(u.program)
 	case tabs.ModelProgressMsg:
 		u.modelsTab.ApplyProgress(message)
 	case tabs.ModelFinishedMsg:
@@ -133,13 +135,6 @@ func (u UI) Update(message tea.Msg) (tea.Model, tea.Cmd) {
 
 		case "left":
 			u.selectedColumn = max(0, u.selectedColumn-1)
-
-		case "enter":
-			if u.selectedColumn == 1 && u.mainWindow.CurrentTabName() == "models" {
-				u.modelsTab.Run(u.program)
-				break
-			}
-			cmd = u.updateComponent(message)
 
 		default:
 			cmd = u.updateComponent(message)

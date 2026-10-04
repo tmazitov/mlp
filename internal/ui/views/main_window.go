@@ -65,9 +65,3 @@ func (w MainWindow) View() string {
 
 	return contentBuilder.String()
 }
-
-// CurrentTabName reports which tab is on screen, so the UI can route a key
-// to a specific tab's behaviour.
-func (w MainWindow) CurrentTabName() string {
-	return w.currentTabName
-}
