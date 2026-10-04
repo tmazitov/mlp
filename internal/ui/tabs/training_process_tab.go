@@ -108,17 +108,24 @@ func (t *TrainingProcessTab) StartTraining(msg StartTrainingMsg, program *tea.Pr
 	t.model = model
 	t.animating = true
 
-	// The subject's example output opens with the shapes of the two sets,
-	// which is also the quickest way to see that the split and the field
-	// selection did what you expected before the epochs start scrolling.
-	features := 0
-	if len(trainSet.Rows) > 0 {
-		features = len(trainSet.Rows[0].Features)
-	}
-	program.Send(AddLogMsg{Message: fmt.Sprintf("x_train shape : (%d, %d)", len(trainSet.Rows), features)})
-	program.Send(AddLogMsg{Message: fmt.Sprintf("x_valid shape : (%d, %d)", len(valSet.Rows), features)})
-
 	go func() {
+		// The subject's example output opens with the shapes of the two
+		// sets, which is also the quickest way to see that the split and
+		// the field selection did what you expected before the epochs
+		// start scrolling.
+		//
+		// This runs in the goroutine rather than in StartTraining itself
+		// because program.Send blocks on an unbuffered channel that only
+		// the event loop drains. StartTraining is called from Update, on
+		// that very loop, so sending from there would have it wait on
+		// itself and freeze the UI.
+		features := 0
+		if len(trainSet.Rows) > 0 {
+			features = len(trainSet.Rows[0].Features)
+		}
+		program.Send(AddLogMsg{Message: fmt.Sprintf("x_train shape : (%d, %d)", len(trainSet.Rows), features)})
+		program.Send(AddLogMsg{Message: fmt.Sprintf("x_valid shape : (%d, %d)", len(valSet.Rows), features)})
+
 		trainLosses := make([]float64, 0, epochs)
 		valLosses := make([]float64, 0, epochs)
 		trainAcc := make([]float64, 0, epochs)
